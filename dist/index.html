@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CFG Derivation Explorer</title>
+    <script type="module" crossorigin src="/assets/index-dCw-W11z.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CQArriIv.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header panel">
+        <span class="eyebrow">Formal Language Playground</span>
+        <button id="themeToggleButton" class="ghost-button" type="button">Toggle Theme</button>
+        <h1>CFG Derivation and Parse Tree Explorer</h1>
+        <p>Enter grammar productions and a target string to generate derivations and parse tree.</p>
+      </header>
+
+      <section class="panel theory-panel">
+        <div class="theory-head">
+          <h2>Quick Theory</h2>
+          <p>Before using the tool, here is the core idea behind context-free grammars and tree construction.</p>
+        </div>
+        <div class="theory-grid">
+          <article class="theory-card">
+            <h3>What Is A CFG?</h3>
+            <p>
+              A context-free grammar (CFG) is a formal system with non-terminals, terminals, a start symbol, and
+              production rules. Rules describe how a non-terminal can be replaced to generate valid strings.
+            </p>
+          </article>
+          <article class="theory-card">
+            <h3>What Is Derivation?</h3>
+            <p>
+              Derivation is the step-by-step process of applying grammar rules from the start symbol to reach the final
+              input string. Leftmost and rightmost derivations differ by which non-terminal is expanded first.
+            </p>
+          </article>
+          <article class="theory-card">
+            <h3>What Is A Parse Tree?</h3>
+            <p>
+              A parse tree shows the same derivation structurally. Internal nodes are non-terminals, leaves are
+              terminals, and each parent-to-children expansion corresponds to one grammar rule application.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel examples-panel">
+        <div class="theory-head">
+          <h2>Example Problems</h2>
+          <p>Pick any example below to auto-fill the form and run instantly.</p>
+        </div>
+        <div class="examples-grid">
+          <article class="example-card">
+            <h3>a* b* Language</h3>
+            <p>Derive a block of <code>a</code>s followed by a block of <code>b</code>s.</p>
+            <button class="ghost-button example-run-button" data-example-key="a-star-b-star" type="button">
+              Load and Run
+            </button>
+          </article>
+          <article class="example-card">
+            <h3>Binary Balance</h3>
+            <p>Checks if number of <code>0</code>s and <code>1</code>s match in order.</p>
+            <button class="ghost-button example-run-button" data-example-key="balanced-binary" type="button">
+              Load and Run
+            </button>
+          </article>
+          <article class="example-card">
+            <h3>Rejected String</h3>
+            <p>Input cannot be derived from the provided grammar.</p>
+            <button class="ghost-button example-run-button" data-example-key="rejected-string" type="button">
+              Load and Run
+            </button>
+          </article>
+          <article class="example-card">
+            <h3>Ambiguous Expression</h3>
+            <p>Shows multiple parse trees for <code>e + e * e</code>.</p>
+            <button class="ghost-button example-run-button" data-example-key="ambiguous-expression" type="button">
+              Load and Run
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel input-panel">
+        <div class="input-grid">
+          <div>
+            <label for="grammarInput">Grammar rules</label>
+            <textarea id="grammarInput" rows="10">S -> a S b | epsilon</textarea>
+            <small>One rule per line. Example: <code>S -> a S b | epsilon</code></small>
+          </div>
+          <div>
+            <label for="nonTerminalInput">Non-terminal symbols</label>
+            <input id="nonTerminalInput" type="text" value="S" />
+            <small>Comma or space separated, e.g. <code>S, A, B</code></small>
+
+            <label for="terminalInput">Terminal symbols</label>
+            <input id="terminalInput" type="text" value="a, b" />
+            <small>Comma or space separated, e.g. <code>a, b</code></small>
+
+            <label for="startSymbolInput">Start symbol</label>
+            <input id="startSymbolInput" type="text" value="S" />
+            <small>Must be one of the non-terminals.</small>
+
+            <label for="inputString">Input string</label>
+            <input id="inputString" type="text" value="aaabbb" />
+            <small>Space-separated tokens or character string both supported.</small>
+            <div class="button-row">
+              <button id="generateButton">Generate Analysis</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="results-grid dual-status">
+        <article class="panel status-window" aria-live="polite">
+          <h2>String Result</h2>
+          <div class="status-choice-grid">
+            <div id="stringAcceptedCard" class="status-state accepted-state">String Accepted</div>
+            <div id="stringRejectedCard" class="status-state rejected-state">String Not Accepted</div>
+          </div>
+        </article>
+        <article class="panel status-window" aria-live="polite">
+          <h2>Ambiguity</h2>
+          <div class="status-choice-grid">
+            <div id="grammarAmbiguousCard" class="status-state ambiguous-state">Ambiguous Grammar</div>
+            <div id="grammarNonAmbiguousCard" class="status-state non-ambiguous-state">Non-Ambiguous Grammar</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="derivation-tree-stack">
+        <div class="derivation-tree-row">
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="leftDerivationTitle">Left Derivation</h2>
+              <div class="card-actions">
+                <button id="leftDetailsButton" class="ghost-button" type="button">Details: Off</button>
+                <button id="copyLeftButton" class="ghost-button" type="button">Copy</button>
+              </div>
+            </div>
+            <ol id="leftmostList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="leftTreeTitle">Left Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="leftTreeAnimationButton" class="ghost-button is-active" type="button">
+                  Animation: On
+                </button>
+                <button id="exportLeftTreeButton" class="ghost-button" type="button">Export</button>
+              </div>
+            </div>
+            <div id="leftTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+
+        <div id="ambiguousExtraLeftRow" class="derivation-tree-row is-hidden">
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="extraLeftDerivationTitle">Parse 2 Left Derivation</h2>
+            </div>
+            <ol id="extraLeftList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="extraLeftTreeTitle">Parse 2 Left Derivation Tree</h2>
+            </div>
+            <div id="extraLeftTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+
+        <div class="derivation-tree-row">
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="rightDerivationTitle">Right Derivation</h2>
+              <div class="card-actions">
+                <button id="rightDetailsButton" class="ghost-button" type="button">Details: Off</button>
+                <button id="copyRightButton" class="ghost-button" type="button">Copy</button>
+              </div>
+            </div>
+            <ol id="rightmostList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="rightTreeTitle">Right Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="rightTreeAnimationButton" class="ghost-button is-active" type="button">
+                  Animation: On
+                </button>
+                <button id="exportRightTreeButton" class="ghost-button" type="button">Export</button>
+              </div>
+            </div>
+            <div id="rightTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+
+        <div id="ambiguousExtraRightRow" class="derivation-tree-row is-hidden">
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="extraRightDerivationTitle">Parse 2 Right Derivation</h2>
+            </div>
+            <ol id="extraRightList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2 id="extraRightTreeTitle">Parse 2 Right Derivation Tree</h2>
+            </div>
+            <div id="extraRightTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  </body>
+  </html>
