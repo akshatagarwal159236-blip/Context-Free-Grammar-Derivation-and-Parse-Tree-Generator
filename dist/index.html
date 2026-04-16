@@ -4,21 +4,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CFG Derivation Explorer</title>
-    <script type="module" crossorigin src="/assets/index-dCw-W11z.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CQArriIv.css">
+    <script type="module" crossorigin src="/assets/index-ukSfm3xh.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DihehMC7.css">
   </head>
-  <body>
+  <body class="theme-dark">
+    <div class="hero-topbar">
+      <div class="hero-brand">
+        <span class="hero-mark">◉</span>
+        <div class="hero-brand-text">
+          <strong>Context Free Grammar</strong>
+          <span>Derivation · Parse Tree</span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <nav class="hero-nav" aria-label="Primary">
+          <a href="#home-section">Home</a>
+          <a href="#theory-section">Theory</a>
+          <a href="#examples-section">Examples</a>
+          <a href="#tool-section">Tool</a>
+        </nav>
+      </div>
+    </div>
     <main class="app">
-      <header class="app-header panel">
-        <span class="eyebrow">Formal Language Playground</span>
-        <button id="themeToggleButton" class="ghost-button" type="button">Toggle Theme</button>
-        <h1>CFG Derivation and Parse Tree Explorer</h1>
-        <p>Enter grammar productions and a target string to generate derivations and parse tree.</p>
+      <header id="home-section" class="app-header panel">
+        <h1>CFG Derivation and Parse Tree Generator</h1>
+        <p>Enter grammar rules and a target string to generate derivations and parse tree.</p>
+        <a class="hero-start-button" href="#tool-section">Launch Tool</a>
+        <aside class="hero-tree-graphic" aria-hidden="true">
+          <svg viewBox="0 0 420 300" role="presentation">
+            <g class="hero-tree-lines">
+              <line class="stage-1" x1="210" y1="48" x2="120" y2="120"></line>
+              <line class="stage-1" x1="210" y1="48" x2="210" y2="120"></line>
+              <line class="stage-1" x1="210" y1="48" x2="300" y2="120"></line>
+              <line class="stage-2" x1="120" y1="120" x2="120" y2="192"></line>
+              <line class="stage-3" x1="300" y1="120" x2="250" y2="192"></line>
+              <line class="stage-3" x1="300" y1="120" x2="300" y2="192"></line>
+              <line class="stage-3" x1="300" y1="120" x2="350" y2="192"></line>
+              <line class="stage-4" x1="250" y1="192" x2="250" y2="264"></line>
+              <line class="stage-4" x1="350" y1="192" x2="350" y2="264"></line>
+            </g>
+            <g class="hero-tree-nodes">
+              <circle class="stage-root" cx="210" cy="48" r="22"></circle>
+              <circle class="stage-1" cx="120" cy="120" r="20"></circle>
+              <circle class="stage-1" cx="210" cy="120" r="20"></circle>
+              <circle class="stage-1" cx="300" cy="120" r="20"></circle>
+              <circle class="stage-2" cx="120" cy="192" r="18"></circle>
+              <circle class="stage-3" cx="250" cy="192" r="18"></circle>
+              <circle class="stage-3" cx="300" cy="192" r="18"></circle>
+              <circle class="stage-3" cx="350" cy="192" r="18"></circle>
+              <circle class="stage-4" cx="250" cy="264" r="16"></circle>
+              <circle class="stage-4" cx="350" cy="264" r="16"></circle>
+            </g>
+            <g class="hero-tree-labels">
+              <text class="stage-root" x="210" y="55">E</text>
+              <text class="stage-1" x="120" y="127">E</text>
+              <text class="stage-1" x="210" y="127">+</text>
+              <text class="stage-1" x="300" y="127">E</text>
+              <text class="stage-2" x="120" y="198">e</text>
+              <text class="stage-3" x="250" y="198">E</text>
+              <text class="stage-3" x="300" y="198">*</text>
+              <text class="stage-3" x="350" y="198">E</text>
+              <text class="stage-4" x="250" y="269">e</text>
+              <text class="stage-4" x="350" y="269">e</text>
+            </g>
+          </svg>
+        </aside>
       </header>
 
-      <section class="panel theory-panel">
+      <section id="theory-section" class="panel theory-panel">
         <div class="theory-head">
-          <h2>Quick Theory</h2>
+          <h2>Theory</h2>
           <p>Before using the tool, here is the core idea behind context-free grammars and tree construction.</p>
         </div>
         <div class="theory-grid">
@@ -46,44 +101,42 @@
         </div>
       </section>
 
-      <section class="panel examples-panel">
+      <section id="examples-section" class="panel examples-panel">
         <div class="theory-head">
           <h2>Example Problems</h2>
-          <p>Pick any example below to auto-fill the form and run instantly.</p>
+          <p>Click any example below to auto-fill the form and run instantly.</p>
         </div>
         <div class="examples-grid">
-          <article class="example-card">
-            <h3>a* b* Language</h3>
+          <article class="example-card example-load-card" data-example-key="a-star-b-star" role="button" tabindex="0">
+            <h3>Ordered Blocks</h3>
             <p>Derive a block of <code>a</code>s followed by a block of <code>b</code>s.</p>
-            <button class="ghost-button example-run-button" data-example-key="a-star-b-star" type="button">
-              Load and Run
-            </button>
           </article>
-          <article class="example-card">
-            <h3>Binary Balance</h3>
-            <p>Checks if number of <code>0</code>s and <code>1</code>s match in order.</p>
-            <button class="ghost-button example-run-button" data-example-key="balanced-binary" type="button">
-              Load and Run
-            </button>
+          <article
+            class="example-card example-load-card"
+            data-example-key="ambiguous-single-input"
+            role="button"
+            tabindex="0"
+          >
+            <h3>Ambiguous Grammar, Unique Input</h3>
+            <p>Grammar is ambiguous overall, but input <code>aaaaa</code> has one parse and a bigger tree.</p>
           </article>
-          <article class="example-card">
-            <h3>Rejected String</h3>
+          <article class="example-card example-load-card" data-example-key="rejected-string" role="button" tabindex="0">
+            <h3>String Rejection Case</h3>
             <p>Input cannot be derived from the provided grammar.</p>
-            <button class="ghost-button example-run-button" data-example-key="rejected-string" type="button">
-              Load and Run
-            </button>
           </article>
-          <article class="example-card">
-            <h3>Ambiguous Expression</h3>
+          <article
+            class="example-card example-load-card"
+            data-example-key="ambiguous-expression"
+            role="button"
+            tabindex="0"
+          >
+            <h3>Expression Ambiguity</h3>
             <p>Shows multiple parse trees for <code>e + e * e</code>.</p>
-            <button class="ghost-button example-run-button" data-example-key="ambiguous-expression" type="button">
-              Load and Run
-            </button>
           </article>
         </div>
       </section>
 
-      <section class="panel input-panel">
+      <section id="tool-section" class="panel input-panel">
         <div class="input-grid">
           <div>
             <label for="grammarInput">Grammar rules</label>
@@ -113,7 +166,7 @@
         </div>
       </section>
 
-      <section class="results-grid dual-status">
+      <section class="results-grid string-only-status">
         <article class="panel status-window" aria-live="polite">
           <h2>String Result</h2>
           <div class="status-choice-grid">
@@ -121,16 +174,9 @@
             <div id="stringRejectedCard" class="status-state rejected-state">String Not Accepted</div>
           </div>
         </article>
-        <article class="panel status-window" aria-live="polite">
-          <h2>Ambiguity</h2>
-          <div class="status-choice-grid">
-            <div id="grammarAmbiguousCard" class="status-state ambiguous-state">Ambiguous Grammar</div>
-            <div id="grammarNonAmbiguousCard" class="status-state non-ambiguous-state">Non-Ambiguous Grammar</div>
-          </div>
-        </article>
       </section>
 
-      <section class="derivation-tree-stack">
+      <section id="derivation-section" class="derivation-tree-stack">
         <div class="derivation-tree-row">
           <article class="panel">
             <div class="card-header">
@@ -208,6 +254,80 @@
               <h2 id="extraRightTreeTitle">Parse 2 Right Derivation Tree</h2>
             </div>
             <div id="extraRightTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="results-grid ambiguity-bottom">
+        <article class="panel status-window" aria-live="polite">
+          <h2>Ambiguity</h2>
+          <div class="status-choice-grid">
+            <div id="grammarAmbiguousCard" class="status-state ambiguous-state">Ambiguous Grammar</div>
+            <div id="grammarNonAmbiguousCard" class="status-state non-ambiguous-state">Non-Ambiguous Grammar</div>
+          </div>
+          <p id="ambiguityNote" class="status-note"></p>
+        </article>
+      </section>
+
+      <section id="grammarWitnessSection" class="derivation-tree-stack is-hidden">
+        <article class="panel status-window">
+          <h2>Ambiguity Witness</h2>
+          <p id="grammarWitnessString" class="status-note"></p>
+        </article>
+        <div class="derivation-tree-row">
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 1 Left Derivation</h2>
+            </div>
+            <ol id="witnessParse1LeftList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 1 Left Derivation Tree</h2>
+            </div>
+            <div id="witnessParse1LeftTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+        <div class="derivation-tree-row">
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 2 Left Derivation</h2>
+            </div>
+            <ol id="witnessParse2LeftList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 2 Left Derivation Tree</h2>
+            </div>
+            <div id="witnessParse2LeftTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+        <div class="derivation-tree-row">
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 1 Right Derivation</h2>
+            </div>
+            <ol id="witnessParse1RightList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 1 Right Derivation Tree</h2>
+            </div>
+            <div id="witnessParse1RightTreeContainer" class="tree-scroll"></div>
+          </article>
+        </div>
+        <div class="derivation-tree-row">
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 2 Right Derivation</h2>
+            </div>
+            <ol id="witnessParse2RightList" class="steps-list"></ol>
+          </article>
+          <article class="panel">
+            <div class="card-header">
+              <h2>Witness Parse 2 Right Derivation Tree</h2>
+            </div>
+            <div id="witnessParse2RightTreeContainer" class="tree-scroll"></div>
           </article>
         </div>
       </section>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { detectGrammarAmbiguity } from "../src/core/ambiguity";
 import { leftmostDerivation, rightmostDerivation } from "../src/core/derivation";
 import { parseGrammar, tokenizeInput } from "../src/core/grammarParser";
 import { parseAllWithBounds, parseInput } from "../src/core/parse";
@@ -22,6 +23,36 @@ describe("grammar parsing", () => {
     });
     expect(grammar.productions.get("S")?.[0]).toEqual(["0", "B"]);
     expect(grammar.productions.get("S")?.[1]).toEqual(["1"]);
+  });
+});
+
+describe("grammar ambiguity detection", () => {
+  it("flags ambiguous grammar even when a tested string has a single parse", () => {
+    const grammar = parseGrammar("S -> S S | a", {
+      nonTerminalsRaw: "S",
+      terminalsRaw: "a",
+      startSymbolRaw: "S",
+    });
+    const result = detectGrammarAmbiguity(grammar, {
+      maxTerminalLength: 6,
+      maxDerivationDepth: 12,
+      maxSententialStates: 4000,
+      maxCandidateStrings: 120,
+    });
+    expect(result.ambiguous).toBe(true);
+    expect(result.witnessTokens?.length).toBeGreaterThan(0);
+    expect(result.witnessTrees?.length).toBeGreaterThan(1);
+  });
+
+  it("keeps non-ambiguous balanced grammar as non-ambiguous in bounded search", () => {
+    const grammar = parseGrammar("S -> a S b | epsilon");
+    const result = detectGrammarAmbiguity(grammar, {
+      maxTerminalLength: 8,
+      maxDerivationDepth: 12,
+      maxSententialStates: 4000,
+      maxCandidateStrings: 120,
+    });
+    expect(result.ambiguous).toBe(false);
   });
 });
 

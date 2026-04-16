@@ -1,10 +1,10 @@
-import { detectAmbiguity } from "./core/ambiguity";
+import { detectGrammarAmbiguity, detectStringAmbiguity } from "./core/ambiguity";
 import {
   leftmostDerivationWithRules,
   rightmostDerivationWithRules,
   type DerivationStep,
 } from "./core/derivation";
-import { parseGrammar, tokenizeInput } from "./core/grammarParser";
+import { parseGrammar, sententialToString, tokenizeInput } from "./core/grammarParser";
 import type { ParseTreeNode } from "./types/cfg";
 import { renderSteps } from "./ui/renderDerivations";
 import { renderParseTree, type TreeRenderHandle } from "./ui/renderTree";
@@ -14,11 +14,9 @@ const nonTerminalInput = document.getElementById("nonTerminalInput") as HTMLInpu
 const terminalInput = document.getElementById("terminalInput") as HTMLInputElement;
 const startSymbolInput = document.getElementById("startSymbolInput") as HTMLInputElement;
 const inputString = document.getElementById("inputString") as HTMLInputElement;
-const exampleRunButtons = Array.from(
-  document.querySelectorAll<HTMLButtonElement>(".example-run-button"),
-);
+const exampleLoadCards = Array.from(document.querySelectorAll<HTMLElement>(".example-load-card"));
+const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".hero-nav a[href^='#']"));
 const generateButton = document.getElementById("generateButton") as HTMLButtonElement;
-const themeToggleButton = document.getElementById("themeToggleButton") as HTMLButtonElement;
 const copyLeftButton = document.getElementById("copyLeftButton") as HTMLButtonElement;
 const copyRightButton = document.getElementById("copyRightButton") as HTMLButtonElement;
 const leftDetailsButton = document.getElementById("leftDetailsButton") as HTMLButtonElement;
@@ -31,6 +29,17 @@ const stringAcceptedCard = document.getElementById("stringAcceptedCard") as HTML
 const stringRejectedCard = document.getElementById("stringRejectedCard") as HTMLDivElement;
 const grammarAmbiguousCard = document.getElementById("grammarAmbiguousCard") as HTMLDivElement;
 const grammarNonAmbiguousCard = document.getElementById("grammarNonAmbiguousCard") as HTMLDivElement;
+const ambiguityNote = document.getElementById("ambiguityNote") as HTMLParagraphElement;
+const grammarWitnessSection = document.getElementById("grammarWitnessSection") as HTMLElement;
+const grammarWitnessString = document.getElementById("grammarWitnessString") as HTMLParagraphElement;
+const witnessParse1LeftList = document.getElementById("witnessParse1LeftList") as HTMLOListElement;
+const witnessParse2LeftList = document.getElementById("witnessParse2LeftList") as HTMLOListElement;
+const witnessParse1RightList = document.getElementById("witnessParse1RightList") as HTMLOListElement;
+const witnessParse2RightList = document.getElementById("witnessParse2RightList") as HTMLOListElement;
+const witnessParse1LeftTreeContainer = document.getElementById("witnessParse1LeftTreeContainer") as HTMLDivElement;
+const witnessParse2LeftTreeContainer = document.getElementById("witnessParse2LeftTreeContainer") as HTMLDivElement;
+const witnessParse1RightTreeContainer = document.getElementById("witnessParse1RightTreeContainer") as HTMLDivElement;
+const witnessParse2RightTreeContainer = document.getElementById("witnessParse2RightTreeContainer") as HTMLDivElement;
 const leftDerivationTitle = document.getElementById("leftDerivationTitle") as HTMLHeadingElement;
 const rightDerivationTitle = document.getElementById("rightDerivationTitle") as HTMLHeadingElement;
 const leftTreeTitle = document.getElementById("leftTreeTitle") as HTMLHeadingElement;
@@ -39,6 +48,8 @@ const leftmostList = document.getElementById("leftmostList") as HTMLOListElement
 const rightmostList = document.getElementById("rightmostList") as HTMLOListElement;
 const leftTreeContainer = document.getElementById("leftTreeContainer") as HTMLDivElement;
 const rightTreeContainer = document.getElementById("rightTreeContainer") as HTMLDivElement;
+const heroTreeGraphic = document.querySelector(".hero-tree-graphic") as HTMLElement | null;
+const toolSection = document.getElementById("tool-section") as HTMLElement | null;
 const ambiguousExtraLeftRow = document.getElementById("ambiguousExtraLeftRow") as HTMLDivElement;
 const ambiguousExtraRightRow = document.getElementById("ambiguousExtraRightRow") as HTMLDivElement;
 const extraLeftDerivationTitle = document.getElementById("extraLeftDerivationTitle") as HTMLHeadingElement;
@@ -50,11 +61,12 @@ const extraRightList = document.getElementById("extraRightList") as HTMLOListEle
 const extraLeftTreeContainer = document.getElementById("extraLeftTreeContainer") as HTMLDivElement;
 const extraRightTreeContainer = document.getElementById("extraRightTreeContainer") as HTMLDivElement;
 const toastRegion = document.getElementById("toastRegion") as HTMLDivElement;
-const THEME_KEY = "cfg-theme";
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.6;
 const ZOOM_STEP = 0.12;
-const TREE_REPLAY_DELAY_MS = 2500;
+const TREE_REPLAY_DELAY_MS = 1000;
+const HERO_ANIMATION_MS = 2200;
+const HERO_REPLAY_DELAY_MS = 500;
 
 type TreeViewport = {
   scale: number;
@@ -87,6 +99,11 @@ let lastRightDetailed: DerivationStep[] = [];
 let lastExtraLeftDetailed: DerivationStep[] = [];
 let lastExtraRightDetailed: DerivationStep[] = [];
 let showingAmbiguousExtra = false;
+let showingGrammarWitness = false;
+let lastWitnessParse1LeftDetailed: DerivationStep[] = [];
+let lastWitnessParse2LeftDetailed: DerivationStep[] = [];
+let lastWitnessParse1RightDetailed: DerivationStep[] = [];
+let lastWitnessParse2RightDetailed: DerivationStep[] = [];
 let showLeftDetails = true;
 let showRightDetails = true;
 let leftTreeSnapshot: ParseTreeNode | null = null;
@@ -103,7 +120,7 @@ let rightAnimationToken = 0;
 type ExampleKey =
   | "ambiguous-expression"
   | "rejected-string"
-  | "balanced-binary"
+  | "ambiguous-single-input"
   | "a-star-b-star";
 
 type ExampleCase = {
@@ -134,12 +151,12 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
     startSymbol: "S",
     input: "aaabb",
   },
-  "balanced-binary": {
-    grammar: "S -> 0 S 1 | 0 1",
-    nonTerminals: "S",
-    terminals: "0, 1",
+  "ambiguous-single-input": {
+    grammar: "S -> A | B\nA -> a A a | a\nB -> B B | b",
+    nonTerminals: "S, A, B",
+    terminals: "a, b",
     startSymbol: "S",
-    input: "000111",
+    input: "aaaaa",
   },
   "a-star-b-star": {
     grammar: "S -> A B\nA -> a A | a\nB -> b B | b",
@@ -150,12 +167,112 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
   },
 };
 
+let heroCycleTimeout: number | null = null;
+
+const clearHeroDemoTimers = (): void => {
+  if (heroCycleTimeout !== null) {
+    window.clearTimeout(heroCycleTimeout);
+    heroCycleTimeout = null;
+  }
+};
+
+const setupHeroTreeDemo = (): void => {
+  if (!heroTreeGraphic) {
+    return;
+  }
+
+  const motionReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (motionReduced) {
+    heroTreeGraphic.classList.add("is-playing");
+    return;
+  }
+
+  const playCycle = (): void => {
+    clearHeroDemoTimers();
+    heroTreeGraphic.classList.remove("is-playing");
+    void heroTreeGraphic.offsetWidth;
+    heroTreeGraphic.classList.add("is-playing");
+    const cycleDuration = HERO_ANIMATION_MS + HERO_REPLAY_DELAY_MS;
+    heroCycleTimeout = window.setTimeout(() => {
+      playCycle();
+    }, cycleDuration);
+  };
+
+  playCycle();
+};
+
 const applyExample = (example: ExampleCase): void => {
   grammarInput.value = example.grammar;
   nonTerminalInput.value = example.nonTerminals;
   terminalInput.value = example.terminals;
   startSymbolInput.value = example.startSymbol;
   inputString.value = example.input;
+};
+
+const setActiveNavLink = (sectionId: string | null): void => {
+  navLinks.forEach((link) => {
+    const targetId = link.getAttribute("href")?.slice(1) ?? "";
+    link.classList.toggle("is-active", !!sectionId && targetId === sectionId);
+  });
+};
+
+const initNavHighlight = (): void => {
+  if (!navLinks.length) {
+    return;
+  }
+
+  const targets = navLinks
+    .map((link) => {
+      const id = link.getAttribute("href")?.slice(1);
+      if (!id) {
+        return null;
+      }
+      const section = document.getElementById(id);
+      if (!section) {
+        return null;
+      }
+      return { id, section };
+    })
+    .filter((entry): entry is { id: string; section: HTMLElement } => !!entry);
+
+  if (!targets.length) {
+    return;
+  }
+
+  const scrollToSection = (id: string): void => {
+    const target = targets.find((entry) => entry.id === id);
+    if (!target) {
+      return;
+    }
+    const sectionMidpoint = target.section.offsetTop + target.section.offsetHeight / 2;
+    const top = Math.max(0, sectionMidpoint - window.innerHeight / 2);
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  const updateActive = (): void => {
+    const marker = window.scrollY + window.innerHeight * 0.35;
+    let activeId: string | null = null;
+    for (const target of targets) {
+      if (marker >= target.section.offsetTop - 98) {
+        activeId = target.id;
+      }
+    }
+    setActiveNavLink(activeId);
+  };
+
+  window.addEventListener("scroll", updateActive, { passive: true });
+  window.addEventListener("resize", updateActive);
+  navLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const id = link.getAttribute("href")?.slice(1) ?? null;
+      if (id) {
+        event.preventDefault();
+        scrollToSection(id);
+      }
+      setActiveNavLink(id);
+    });
+  });
+  updateActive();
 };
 
 type BinaryState = "left" | "right" | "idle";
@@ -271,6 +388,11 @@ const setAmbiguousExtraVisible = (visible: boolean): void => {
   ambiguousExtraRightRow.classList.toggle("is-hidden", !visible);
 };
 
+const setGrammarWitnessVisible = (visible: boolean): void => {
+  showingGrammarWitness = visible;
+  grammarWitnessSection.classList.toggle("is-hidden", !visible);
+};
+
 const rerenderDerivationPanels = (): void => {
   renderSteps(leftmostList, lastLeftDetailed, showLeftDetails);
   renderSteps(rightmostList, lastRightDetailed, showRightDetails);
@@ -280,6 +402,18 @@ const rerenderDerivationPanels = (): void => {
   } else {
     renderSteps(extraLeftList, []);
     renderSteps(extraRightList, []);
+  }
+
+  if (showingGrammarWitness) {
+    renderSteps(witnessParse1LeftList, lastWitnessParse1LeftDetailed, showLeftDetails);
+    renderSteps(witnessParse2LeftList, lastWitnessParse2LeftDetailed, showLeftDetails);
+    renderSteps(witnessParse1RightList, lastWitnessParse1RightDetailed, showRightDetails);
+    renderSteps(witnessParse2RightList, lastWitnessParse2RightDetailed, showRightDetails);
+  } else {
+    renderSteps(witnessParse1LeftList, []);
+    renderSteps(witnessParse2LeftList, []);
+    renderSteps(witnessParse1RightList, []);
+    renderSteps(witnessParse2RightList, []);
   }
 };
 
@@ -313,14 +447,25 @@ const clearOutputs = (): void => {
   lastRightDetailed = [];
   lastExtraLeftDetailed = [];
   lastExtraRightDetailed = [];
+  lastWitnessParse1LeftDetailed = [];
+  lastWitnessParse2LeftDetailed = [];
+  lastWitnessParse1RightDetailed = [];
+  lastWitnessParse2RightDetailed = [];
   setAmbiguousExtraVisible(false);
+  setGrammarWitnessVisible(false);
   rerenderDerivationPanels();
   leftTreeContainer.innerHTML = "";
   rightTreeContainer.innerHTML = "";
   extraLeftTreeContainer.innerHTML = "";
   extraRightTreeContainer.innerHTML = "";
+  witnessParse1LeftTreeContainer.innerHTML = "";
+  witnessParse2LeftTreeContainer.innerHTML = "";
+  witnessParse1RightTreeContainer.innerHTML = "";
+  witnessParse2RightTreeContainer.innerHTML = "";
   setStatusPair(stringAcceptedCard, stringRejectedCard, "idle");
   setStatusPair(grammarAmbiguousCard, grammarNonAmbiguousCard, "idle");
+  ambiguityNote.textContent = "";
+  grammarWitnessString.textContent = "";
   setDefaultTitles();
   lastLeft = [];
   lastRight = [];
@@ -340,10 +485,18 @@ const setGenerating = (active: boolean): void => {
   rightmostList.classList.toggle("skeleton", active);
   extraLeftList.classList.toggle("skeleton", active);
   extraRightList.classList.toggle("skeleton", active);
+  witnessParse1LeftList.classList.toggle("skeleton", active && showingGrammarWitness);
+  witnessParse2LeftList.classList.toggle("skeleton", active && showingGrammarWitness);
+  witnessParse1RightList.classList.toggle("skeleton", active && showingGrammarWitness);
+  witnessParse2RightList.classList.toggle("skeleton", active && showingGrammarWitness);
   leftTreeContainer.classList.toggle("skeleton", active);
   rightTreeContainer.classList.toggle("skeleton", active);
   extraLeftTreeContainer.classList.toggle("skeleton", active);
   extraRightTreeContainer.classList.toggle("skeleton", active);
+  witnessParse1LeftTreeContainer.classList.toggle("skeleton", active && showingGrammarWitness);
+  witnessParse2LeftTreeContainer.classList.toggle("skeleton", active && showingGrammarWitness);
+  witnessParse1RightTreeContainer.classList.toggle("skeleton", active && showingGrammarWitness);
+  witnessParse2RightTreeContainer.classList.toggle("skeleton", active && showingGrammarWitness);
 };
 
 const applyTreeTransform = (scrollEl: HTMLDivElement): void => {
@@ -384,6 +537,10 @@ const resetAllTreeViews = (): void => {
   resetTreeView(rightTreeContainer);
   resetTreeView(extraLeftTreeContainer);
   resetTreeView(extraRightTreeContainer);
+  resetTreeView(witnessParse1LeftTreeContainer);
+  resetTreeView(witnessParse2LeftTreeContainer);
+  resetTreeView(witnessParse1RightTreeContainer);
+  resetTreeView(witnessParse2RightTreeContainer);
 };
 
 const toTreeText = (root: Element): string =>
@@ -439,18 +596,6 @@ const exportTreeFrom = (scrollEl: HTMLDivElement, filename: string, label: strin
   link.click();
   URL.revokeObjectURL(url);
   showToast(`${label} tree exported.`);
-};
-
-const applyInitialTheme = (): void => {
-  const saved = localStorage.getItem(THEME_KEY);
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = saved ? saved === "dark" : prefersDark;
-  document.body.classList.toggle("theme-dark", dark);
-};
-
-const toggleTheme = (): void => {
-  const isDark = document.body.classList.toggle("theme-dark");
-  localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
 };
 
 const attachGlobalPanHandlersOnce = (): void => {
@@ -528,22 +673,75 @@ const run = async (): Promise<void> => {
       startSymbolRaw: startSymbolInput.value,
     });
     const tokens = tokenizeInput(inputString.value, grammar.terminals);
-    const ambiguity = detectAmbiguity(grammar, tokens);
+    const grammarAmbiguity = detectGrammarAmbiguity(grammar);
+    const inputAmbiguity = detectStringAmbiguity(grammar, tokens);
 
-    if (!ambiguity.trees.length) {
+    const inputAccepted = inputAmbiguity.trees.length > 0;
+    const treesForDisplay = inputAmbiguity.trees;
+    const ambiguousForDisplay = inputAmbiguity.ambiguous;
+
+    const hasWitness =
+      grammarAmbiguity.ambiguous &&
+      !!grammarAmbiguity.witnessTokens &&
+      !!grammarAmbiguity.witnessTrees &&
+      grammarAmbiguity.witnessTrees.length > 1;
+
+    if (grammarAmbiguity.ambiguous && grammarAmbiguity.witnessTokens) {
+      const witness = sententialToString(grammarAmbiguity.witnessTokens);
+      ambiguityNote.textContent = `Ambiguous grammar witness string: ${witness}.`;
+      grammarWitnessString.textContent = `Witness string with multiple parses: ${witness}`;
+    } else {
+      ambiguityNote.textContent = grammarAmbiguity.note;
+      grammarWitnessString.textContent = "";
+    }
+
+    if (hasWitness) {
+      const [witnessTreeA, witnessTreeB] = grammarAmbiguity.witnessTrees!;
+      lastWitnessParse1LeftDetailed = leftmostDerivationWithRules(grammar, witnessTreeA);
+      lastWitnessParse2LeftDetailed = leftmostDerivationWithRules(grammar, witnessTreeB);
+      lastWitnessParse1RightDetailed = rightmostDerivationWithRules(grammar, witnessTreeA);
+      lastWitnessParse2RightDetailed = rightmostDerivationWithRules(grammar, witnessTreeB);
+      setGrammarWitnessVisible(true);
+      rerenderDerivationPanels();
+      renderParseTree(witnessParse1LeftTreeContainer, witnessTreeA, {
+        animateGrowth: false,
+        expansionOrder: expansionOrderFromDerivation(lastWitnessParse1LeftDetailed),
+      });
+      renderParseTree(witnessParse2LeftTreeContainer, witnessTreeB, {
+        animateGrowth: false,
+        expansionOrder: expansionOrderFromDerivation(lastWitnessParse2LeftDetailed),
+      });
+      renderParseTree(witnessParse1RightTreeContainer, witnessTreeA, {
+        animateGrowth: false,
+        expansionOrder: expansionOrderFromDerivation(lastWitnessParse1RightDetailed),
+      });
+      renderParseTree(witnessParse2RightTreeContainer, witnessTreeB, {
+        animateGrowth: false,
+        expansionOrder: expansionOrderFromDerivation(lastWitnessParse2RightDetailed),
+      });
+    } else {
+      setGrammarWitnessVisible(false);
+      rerenderDerivationPanels();
+    }
+
+    if (!treesForDisplay.length) {
       setStatusPair(stringAcceptedCard, stringRejectedCard, "right");
-      setStatusPair(grammarAmbiguousCard, grammarNonAmbiguousCard, "idle");
+      setStatusPair(grammarAmbiguousCard, grammarNonAmbiguousCard, grammarAmbiguity.ambiguous ? "left" : "right");
+      resetAllTreeViews();
+      if (hasWitness) {
+        animateEntry(grammarWitnessSection);
+      }
       return;
     }
 
-    const [firstTree, secondTree] = ambiguity.trees;
+    const [firstTree, secondTree] = treesForDisplay;
     const alternativeTree = secondTree ?? firstTree;
     const leftDetailed = leftmostDerivationWithRules(grammar, firstTree);
     const rightDetailed = rightmostDerivationWithRules(grammar, firstTree);
-    const extraLeftDetailed = ambiguity.ambiguous
+    const extraLeftDetailed = ambiguousForDisplay
       ? leftmostDerivationWithRules(grammar, alternativeTree)
       : [];
-    const extraRightDetailed = ambiguity.ambiguous
+    const extraRightDetailed = ambiguousForDisplay
       ? rightmostDerivationWithRules(grammar, alternativeTree)
       : [];
     const left = leftDetailed.map((step) => step.sentential);
@@ -555,13 +753,13 @@ const run = async (): Promise<void> => {
     lastRightDetailed = rightDetailed;
     lastExtraLeftDetailed = extraLeftDetailed;
     lastExtraRightDetailed = extraRightDetailed;
-    setAmbiguousExtraVisible(ambiguity.ambiguous);
+    setAmbiguousExtraVisible(ambiguousForDisplay);
     rerenderDerivationPanels();
     leftTreeSnapshot = firstTree;
     rightTreeSnapshot = firstTree;
     startTreePlayback("left");
     startTreePlayback("right");
-    if (ambiguity.ambiguous) {
+    if (ambiguousForDisplay) {
       renderParseTree(extraLeftTreeContainer, alternativeTree, {
         animateGrowth: false,
         expansionOrder: expansionOrderFromDerivation(extraLeftDetailed),
@@ -571,7 +769,7 @@ const run = async (): Promise<void> => {
         expansionOrder: expansionOrderFromDerivation(extraRightDetailed),
       });
     }
-    if (ambiguity.ambiguous) {
+    if (ambiguousForDisplay) {
       setAmbiguousTitles();
     } else {
       setDefaultTitles();
@@ -581,15 +779,26 @@ const run = async (): Promise<void> => {
     animateEntry(rightmostList);
     animateEntry(leftTreeContainer);
     animateEntry(rightTreeContainer);
-    if (ambiguity.ambiguous) {
+    if (ambiguousForDisplay) {
       animateEntry(extraLeftList);
       animateEntry(extraRightList);
       animateEntry(extraLeftTreeContainer);
       animateEntry(extraRightTreeContainer);
     }
+    if (hasWitness) {
+      animateEntry(grammarWitnessSection);
+      animateEntry(witnessParse1LeftList);
+      animateEntry(witnessParse2LeftList);
+      animateEntry(witnessParse1RightList);
+      animateEntry(witnessParse2RightList);
+      animateEntry(witnessParse1LeftTreeContainer);
+      animateEntry(witnessParse2LeftTreeContainer);
+      animateEntry(witnessParse1RightTreeContainer);
+      animateEntry(witnessParse2RightTreeContainer);
+    }
 
-    setStatusPair(stringAcceptedCard, stringRejectedCard, "left");
-    setStatusPair(grammarAmbiguousCard, grammarNonAmbiguousCard, ambiguity.ambiguous ? "left" : "right");
+    setStatusPair(stringAcceptedCard, stringRejectedCard, inputAccepted ? "left" : "right");
+    setStatusPair(grammarAmbiguousCard, grammarNonAmbiguousCard, grammarAmbiguity.ambiguous ? "left" : "right");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     setStatusPair(stringAcceptedCard, stringRejectedCard, "right");
@@ -603,9 +812,9 @@ const run = async (): Promise<void> => {
 generateButton.addEventListener("click", () => {
   void run();
 });
-exampleRunButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const key = button.dataset.exampleKey as ExampleKey | undefined;
+exampleLoadCards.forEach((card) => {
+  const loadAndRunExample = async (): Promise<void> => {
+    const key = card.dataset.exampleKey as ExampleKey | undefined;
     if (!key) {
       return;
     }
@@ -614,10 +823,20 @@ exampleRunButtons.forEach((button) => {
       return;
     }
     applyExample(example);
-    void run();
+    await run();
+    toolSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  card.addEventListener("click", () => {
+    void loadAndRunExample();
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      void loadAndRunExample();
+    }
   });
 });
-themeToggleButton.addEventListener("click", toggleTheme);
 leftTreeAnimationButton.addEventListener("click", () => {
   leftAnimationEnabled = !leftAnimationEnabled;
   syncTreeAnimationButtons();
@@ -656,7 +875,6 @@ inputString.addEventListener("keydown", (event) => {
   }
 });
 
-applyInitialTheme();
 syncDetailsButtons();
 syncTreeAnimationButtons();
 attachGlobalPanHandlersOnce();
@@ -664,4 +882,10 @@ initTreeViewport(leftTreeContainer);
 initTreeViewport(rightTreeContainer);
 initTreeViewport(extraLeftTreeContainer);
 initTreeViewport(extraRightTreeContainer);
+initTreeViewport(witnessParse1LeftTreeContainer);
+initTreeViewport(witnessParse2LeftTreeContainer);
+initTreeViewport(witnessParse1RightTreeContainer);
+initTreeViewport(witnessParse2RightTreeContainer);
+setupHeroTreeDemo();
+initNavHighlight();
 void run();
