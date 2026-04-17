@@ -41,3 +41,44 @@ S -> a S b | epsilon
 - Parsing uses bounded backtracking search to keep runtime finite.
 - Ambiguity detection is best effort: it looks for multiple parses within configured limits.
 - Deeply recursive or very ambiguous grammars may hit depth/node limits and report bounded-search notes.
+
+## File Structure
+
+```txt
+tafl project/
+├─ index.html
+├─ src/
+│  ├─ main.ts
+│  ├─ styles.css
+│  ├─ core/
+│  │  ├─ grammarParser.ts
+│  │  ├─ parse.ts
+│  │  ├─ derivation.ts
+│  │  └─ ambiguity.ts
+│  ├─ ui/
+│  │  ├─ renderDerivations.ts
+│  │  └─ renderTree.ts
+│  └─ types/
+├─ tests/
+│  └─ cfgCore.test.ts
+├─ package.json
+└─ README.md
+```
+
+## Technologies Used
+
+- TypeScript
+- Vite
+- Vitest
+- HTML/CSS (single-page frontend)
+
+## Author
+
+- Student Name: Akshat Agarwal
+- Roll No: 2024UCS1549
+- Instructor: Prof. Anmol Awasthi
+- Institution: Netaji Subhas University of Technology, Delhi
+
+## License
+
+This project is submitted as an academic assignment. Feel free to use it for educational purposes.
