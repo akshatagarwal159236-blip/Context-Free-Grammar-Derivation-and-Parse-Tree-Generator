@@ -67,6 +67,8 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.6;
 const ZOOM_STEP = 0.12;
 const TREE_REPLAY_DELAY_MS = 1000;
+const TREE_START_DELAY_MS = 280;
+const TREE_STEP_DELAY_MS = 680;
 const HERO_ANIMATION_MS = 2200;
 const HERO_REPLAY_DELAY_MS = 500;
 
@@ -116,8 +118,48 @@ let leftTreeHandle: TreeRenderHandle | null = null;
 let rightTreeHandle: TreeRenderHandle | null = null;
 let leftReplayTimeoutId: number | null = null;
 let rightReplayTimeoutId: number | null = null;
+let leftDerivationTimeoutIds = new Set<number>();
+let rightDerivationTimeoutIds = new Set<number>();
 let leftAnimationToken = 0;
 let rightAnimationToken = 0;
+
+type AmbiguityPlaybackKey =
+  | "extraLeft"
+  | "extraRight"
+  | "witnessParse1Left"
+  | "witnessParse2Left"
+  | "witnessParse1Right"
+  | "witnessParse2Right";
+
+const AMBIGUITY_PLAYBACK_KEYS: AmbiguityPlaybackKey[] = [
+  "extraLeft",
+  "extraRight",
+  "witnessParse1Left",
+  "witnessParse2Left",
+  "witnessParse1Right",
+  "witnessParse2Right",
+];
+
+let ambiguityTreeHandles: Partial<Record<AmbiguityPlaybackKey, TreeRenderHandle>> = {};
+let ambiguityReplayTimeoutIds: Partial<Record<AmbiguityPlaybackKey, number>> = {};
+const ambiguityDerivationTimeoutIds: Record<AmbiguityPlaybackKey, Set<number>> = {
+  extraLeft: new Set<number>(),
+  extraRight: new Set<number>(),
+  witnessParse1Left: new Set<number>(),
+  witnessParse2Left: new Set<number>(),
+  witnessParse1Right: new Set<number>(),
+  witnessParse2Right: new Set<number>(),
+};
+const ambiguityAnimationTokens: Record<AmbiguityPlaybackKey, number> = {
+  extraLeft: 0,
+  extraRight: 0,
+  witnessParse1Left: 0,
+  witnessParse2Left: 0,
+  witnessParse1Right: 0,
+  witnessParse2Right: 0,
+};
+const ambiguityTreeSnapshots: Partial<Record<AmbiguityPlaybackKey, ParseTreeNode>> = {};
+const ambiguityDerivationSnapshots: Partial<Record<AmbiguityPlaybackKey, DerivationStep[]>> = {};
 
 type ExampleKey =
   | "ambiguous-expression"
@@ -338,6 +380,8 @@ const clearTreePlayback = (side: "left" | "right"): void => {
       leftTreeHandle.skip();
       leftTreeHandle = null;
     }
+    leftDerivationTimeoutIds.forEach((id) => window.clearTimeout(id));
+    leftDerivationTimeoutIds.clear();
     return;
   }
 
@@ -350,11 +394,174 @@ const clearTreePlayback = (side: "left" | "right"): void => {
     rightTreeHandle.skip();
     rightTreeHandle = null;
   }
+  rightDerivationTimeoutIds.forEach((id) => window.clearTimeout(id));
+  rightDerivationTimeoutIds.clear();
 };
 
 const clearAllTreePlayback = (): void => {
   clearTreePlayback("left");
   clearTreePlayback("right");
+};
+
+const ambiguityListForKey = (key: AmbiguityPlaybackKey): HTMLOListElement => {
+  switch (key) {
+    case "extraLeft":
+      return extraLeftList;
+    case "extraRight":
+      return extraRightList;
+    case "witnessParse1Left":
+      return witnessParse1LeftList;
+    case "witnessParse2Left":
+      return witnessParse2LeftList;
+    case "witnessParse1Right":
+      return witnessParse1RightList;
+    case "witnessParse2Right":
+      return witnessParse2RightList;
+  }
+};
+
+const ambiguityTreeContainerForKey = (key: AmbiguityPlaybackKey): HTMLDivElement => {
+  switch (key) {
+    case "extraLeft":
+      return extraLeftTreeContainer;
+    case "extraRight":
+      return extraRightTreeContainer;
+    case "witnessParse1Left":
+      return witnessParse1LeftTreeContainer;
+    case "witnessParse2Left":
+      return witnessParse2LeftTreeContainer;
+    case "witnessParse1Right":
+      return witnessParse1RightTreeContainer;
+    case "witnessParse2Right":
+      return witnessParse2RightTreeContainer;
+  }
+};
+
+const ambiguityShowDetailsForKey = (key: AmbiguityPlaybackKey): boolean =>
+  key.endsWith("Left") ? showLeftDetails : showRightDetails;
+
+const clearAmbiguityPlayback = (key: AmbiguityPlaybackKey): void => {
+  ambiguityAnimationTokens[key] += 1;
+  const replayId = ambiguityReplayTimeoutIds[key];
+  if (replayId !== undefined) {
+    window.clearTimeout(replayId);
+    delete ambiguityReplayTimeoutIds[key];
+  }
+  const handle = ambiguityTreeHandles[key];
+  if (handle) {
+    handle.skip();
+    delete ambiguityTreeHandles[key];
+  }
+  const timeoutIds = ambiguityDerivationTimeoutIds[key];
+  timeoutIds.forEach((id) => window.clearTimeout(id));
+  timeoutIds.clear();
+};
+
+const clearAllAmbiguityPlayback = (): void => {
+  AMBIGUITY_PLAYBACK_KEYS.forEach((key) => clearAmbiguityPlayback(key));
+};
+
+const startAmbiguityDerivationPlayback = (key: AmbiguityPlaybackKey, steps: DerivationStep[], token: number): void => {
+  const list = ambiguityListForKey(key);
+  const timeoutIds = ambiguityDerivationTimeoutIds[key];
+  timeoutIds.forEach((id) => window.clearTimeout(id));
+  timeoutIds.clear();
+
+  if (!steps.length) {
+    renderSteps(list, [], ambiguityShowDetailsForKey(key));
+    return;
+  }
+
+  renderSteps(list, [steps[0]], ambiguityShowDetailsForKey(key));
+
+  for (let index = 1; index < steps.length; index += 1) {
+    const timeoutId = window.setTimeout(() => {
+      timeoutIds.delete(timeoutId);
+      if (token !== ambiguityAnimationTokens[key]) {
+        return;
+      }
+      renderSteps(list, steps.slice(0, index + 1), ambiguityShowDetailsForKey(key));
+    }, TREE_START_DELAY_MS + (index - 1) * TREE_STEP_DELAY_MS);
+    timeoutIds.add(timeoutId);
+  }
+};
+
+const startAmbiguityPlayback = (key: AmbiguityPlaybackKey): void => {
+  const tree = ambiguityTreeSnapshots[key];
+  const steps = ambiguityDerivationSnapshots[key] ?? [];
+  const container = ambiguityTreeContainerForKey(key);
+  const list = ambiguityListForKey(key);
+
+  if (!tree) {
+    renderSteps(list, [], ambiguityShowDetailsForKey(key));
+    container.innerHTML = "";
+    return;
+  }
+
+  clearAmbiguityPlayback(key);
+  const token = ambiguityAnimationTokens[key];
+  startAmbiguityDerivationPlayback(key, steps, token);
+  const handle = renderParseTree(container, tree, {
+    animateGrowth: true,
+    expansionOrder: expansionOrderFromDerivation(steps),
+  });
+  requestAnimationFrame(() => {
+    resetTreeView(container);
+  });
+  ambiguityTreeHandles[key] = handle;
+
+  void handle.done.then(() => {
+    if (token !== ambiguityAnimationTokens[key]) {
+      return;
+    }
+    delete ambiguityTreeHandles[key];
+    renderSteps(list, steps, ambiguityShowDetailsForKey(key));
+    resetTreeView(container);
+    const timeoutId = window.setTimeout(() => {
+      if (token !== ambiguityAnimationTokens[key]) {
+        return;
+      }
+      startAmbiguityPlayback(key);
+    }, TREE_REPLAY_DELAY_MS);
+    ambiguityReplayTimeoutIds[key] = timeoutId;
+  });
+};
+
+const startDerivationStepPlayback = (
+  side: "left" | "right",
+  steps: DerivationStep[],
+  animate: boolean,
+  token: number,
+): void => {
+  const isLeft = side === "left";
+  const list = isLeft ? leftmostList : rightmostList;
+  const showDetails = isLeft ? showLeftDetails : showRightDetails;
+  const timeoutIds = isLeft ? leftDerivationTimeoutIds : rightDerivationTimeoutIds;
+
+  timeoutIds.forEach((id) => window.clearTimeout(id));
+  timeoutIds.clear();
+
+  if (!steps.length) {
+    renderSteps(list, [], showDetails);
+    return;
+  }
+  if (!animate) {
+    renderSteps(list, steps, showDetails);
+    return;
+  }
+
+  renderSteps(list, [steps[0]], showDetails);
+  for (let index = 1; index < steps.length; index += 1) {
+    const timeoutId = window.setTimeout(() => {
+      timeoutIds.delete(timeoutId);
+      const activeToken = isLeft ? leftAnimationToken : rightAnimationToken;
+      if (token !== activeToken) {
+        return;
+      }
+      renderSteps(list, steps.slice(0, index + 1), showDetails);
+    }, TREE_START_DELAY_MS + (index - 1) * TREE_STEP_DELAY_MS);
+    timeoutIds.add(timeoutId);
+  }
 };
 
 const startTreePlayback = (side: "left" | "right"): void => {
@@ -369,6 +576,7 @@ const startTreePlayback = (side: "left" | "right"): void => {
   clearTreePlayback(side);
   const token = isLeft ? leftAnimationToken : rightAnimationToken;
   const derivationSteps = isLeft ? lastLeftDetailed : lastRightDetailed;
+  startDerivationStepPlayback(side, derivationSteps, enabled, token);
   const handle = renderParseTree(container, tree, {
     animateGrowth: enabled,
     expansionOrder: expansionOrderFromDerivation(derivationSteps),
@@ -393,6 +601,11 @@ const startTreePlayback = (side: "left" | "right"): void => {
     } else {
       rightTreeHandle = null;
     }
+    renderSteps(
+      isLeft ? leftmostList : rightmostList,
+      derivationSteps,
+      isLeft ? showLeftDetails : showRightDetails,
+    );
     resetTreeView(container);
     if (!enabled) {
       return;
@@ -480,6 +693,7 @@ const setAmbiguousTitles = (): void => {
 
 const clearOutputs = (): void => {
   clearAllTreePlayback();
+  clearAllAmbiguityPlayback();
   leftTreeSnapshot = null;
   rightTreeSnapshot = null;
   lastLeftDetailed = [];
@@ -505,6 +719,10 @@ const clearOutputs = (): void => {
   setStatusPair(grammarAmbiguousCard, grammarNonAmbiguousCard, "idle");
   ambiguityNote.textContent = "";
   grammarWitnessString.textContent = "";
+  AMBIGUITY_PLAYBACK_KEYS.forEach((key) => {
+    delete ambiguityTreeSnapshots[key];
+    delete ambiguityDerivationSnapshots[key];
+  });
   setDefaultTitles();
   lastLeft = [];
   lastRight = [];
@@ -740,25 +958,33 @@ const run = async (): Promise<void> => {
       lastWitnessParse2LeftDetailed = leftmostDerivationWithRules(grammar, witnessTreeB);
       lastWitnessParse1RightDetailed = rightmostDerivationWithRules(grammar, witnessTreeA);
       lastWitnessParse2RightDetailed = rightmostDerivationWithRules(grammar, witnessTreeB);
+      ambiguityTreeSnapshots.witnessParse1Left = witnessTreeA;
+      ambiguityTreeSnapshots.witnessParse2Left = witnessTreeB;
+      ambiguityTreeSnapshots.witnessParse1Right = witnessTreeA;
+      ambiguityTreeSnapshots.witnessParse2Right = witnessTreeB;
+      ambiguityDerivationSnapshots.witnessParse1Left = lastWitnessParse1LeftDetailed;
+      ambiguityDerivationSnapshots.witnessParse2Left = lastWitnessParse2LeftDetailed;
+      ambiguityDerivationSnapshots.witnessParse1Right = lastWitnessParse1RightDetailed;
+      ambiguityDerivationSnapshots.witnessParse2Right = lastWitnessParse2RightDetailed;
       setGrammarWitnessVisible(true);
       rerenderDerivationPanels();
-      renderParseTree(witnessParse1LeftTreeContainer, witnessTreeA, {
-        animateGrowth: false,
-        expansionOrder: expansionOrderFromDerivation(lastWitnessParse1LeftDetailed),
-      });
-      renderParseTree(witnessParse2LeftTreeContainer, witnessTreeB, {
-        animateGrowth: false,
-        expansionOrder: expansionOrderFromDerivation(lastWitnessParse2LeftDetailed),
-      });
-      renderParseTree(witnessParse1RightTreeContainer, witnessTreeA, {
-        animateGrowth: false,
-        expansionOrder: expansionOrderFromDerivation(lastWitnessParse1RightDetailed),
-      });
-      renderParseTree(witnessParse2RightTreeContainer, witnessTreeB, {
-        animateGrowth: false,
-        expansionOrder: expansionOrderFromDerivation(lastWitnessParse2RightDetailed),
-      });
+      startAmbiguityPlayback("witnessParse1Left");
+      startAmbiguityPlayback("witnessParse2Left");
+      startAmbiguityPlayback("witnessParse1Right");
+      startAmbiguityPlayback("witnessParse2Right");
     } else {
+      clearAmbiguityPlayback("witnessParse1Left");
+      clearAmbiguityPlayback("witnessParse2Left");
+      clearAmbiguityPlayback("witnessParse1Right");
+      clearAmbiguityPlayback("witnessParse2Right");
+      delete ambiguityTreeSnapshots.witnessParse1Left;
+      delete ambiguityTreeSnapshots.witnessParse2Left;
+      delete ambiguityTreeSnapshots.witnessParse1Right;
+      delete ambiguityTreeSnapshots.witnessParse2Right;
+      delete ambiguityDerivationSnapshots.witnessParse1Left;
+      delete ambiguityDerivationSnapshots.witnessParse2Left;
+      delete ambiguityDerivationSnapshots.witnessParse1Right;
+      delete ambiguityDerivationSnapshots.witnessParse2Right;
       setGrammarWitnessVisible(false);
       rerenderDerivationPanels();
     }
@@ -799,14 +1025,19 @@ const run = async (): Promise<void> => {
     startTreePlayback("left");
     startTreePlayback("right");
     if (ambiguousForDisplay) {
-      renderParseTree(extraLeftTreeContainer, alternativeTree, {
-        animateGrowth: false,
-        expansionOrder: expansionOrderFromDerivation(extraLeftDetailed),
-      });
-      renderParseTree(extraRightTreeContainer, alternativeTree, {
-        animateGrowth: false,
-        expansionOrder: expansionOrderFromDerivation(extraRightDetailed),
-      });
+      ambiguityTreeSnapshots.extraLeft = alternativeTree;
+      ambiguityTreeSnapshots.extraRight = alternativeTree;
+      ambiguityDerivationSnapshots.extraLeft = extraLeftDetailed;
+      ambiguityDerivationSnapshots.extraRight = extraRightDetailed;
+      startAmbiguityPlayback("extraLeft");
+      startAmbiguityPlayback("extraRight");
+    } else {
+      clearAmbiguityPlayback("extraLeft");
+      clearAmbiguityPlayback("extraRight");
+      delete ambiguityTreeSnapshots.extraLeft;
+      delete ambiguityTreeSnapshots.extraRight;
+      delete ambiguityDerivationSnapshots.extraLeft;
+      delete ambiguityDerivationSnapshots.extraRight;
     }
     if (ambiguousForDisplay) {
       setAmbiguousTitles();
