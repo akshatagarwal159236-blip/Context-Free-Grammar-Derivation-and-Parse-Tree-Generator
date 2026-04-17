@@ -310,10 +310,10 @@
             <div class="card-header">
               <h2 id="leftTreeTitle">Left Derivation Tree</h2>
               <div class="card-actions">
-                <button id="leftTreeAnimationButton" class="ghost-button is-active" type="button">
-                  Animation: On
-                </button>
-                <button id="exportLeftTreeButton" class="ghost-button" type="button">Export</button>
+                <button id="leftTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="leftTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="leftTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="leftTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
               </div>
             </div>
             <div id="leftTreeContainer" class="tree-scroll"></div>
@@ -330,6 +330,12 @@
           <article class="panel">
             <div class="card-header">
               <h2 id="extraLeftTreeTitle">Parse 2 Left Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="extraLeftTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="extraLeftTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="extraLeftTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="extraLeftTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
+              </div>
             </div>
             <div id="extraLeftTreeContainer" class="tree-scroll"></div>
           </article>
@@ -350,10 +356,10 @@
             <div class="card-header">
               <h2 id="rightTreeTitle">Right Derivation Tree</h2>
               <div class="card-actions">
-                <button id="rightTreeAnimationButton" class="ghost-button is-active" type="button">
-                  Animation: On
-                </button>
-                <button id="exportRightTreeButton" class="ghost-button" type="button">Export</button>
+                <button id="rightTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="rightTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="rightTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="rightTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
               </div>
             </div>
             <div id="rightTreeContainer" class="tree-scroll"></div>
@@ -370,6 +376,12 @@
           <article class="panel">
             <div class="card-header">
               <h2 id="extraRightTreeTitle">Parse 2 Right Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="extraRightTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="extraRightTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="extraRightTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="extraRightTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
+              </div>
             </div>
             <div id="extraRightTreeContainer" class="tree-scroll"></div>
           </article>
@@ -402,6 +414,12 @@
           <article class="panel">
             <div class="card-header">
               <h2>Witness Parse 1 Left Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="witnessParse1LeftTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="witnessParse1LeftTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="witnessParse1LeftTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="witnessParse1LeftTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
+              </div>
             </div>
             <div id="witnessParse1LeftTreeContainer" class="tree-scroll"></div>
           </article>
@@ -416,6 +434,12 @@
           <article class="panel">
             <div class="card-header">
               <h2>Witness Parse 2 Left Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="witnessParse2LeftTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="witnessParse2LeftTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="witnessParse2LeftTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="witnessParse2LeftTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
+              </div>
             </div>
             <div id="witnessParse2LeftTreeContainer" class="tree-scroll"></div>
           </article>
@@ -430,6 +454,12 @@
           <article class="panel">
             <div class="card-header">
               <h2>Witness Parse 1 Right Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="witnessParse1RightTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="witnessParse1RightTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="witnessParse1RightTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="witnessParse1RightTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
+              </div>
             </div>
             <div id="witnessParse1RightTreeContainer" class="tree-scroll"></div>
           </article>
@@ -444,6 +474,12 @@
           <article class="panel">
             <div class="card-header">
               <h2>Witness Parse 2 Right Derivation Tree</h2>
+              <div class="card-actions">
+                <button id="witnessParse2RightTreePauseButton" class="ghost-button" type="button" aria-label="Pause">||</button>
+                <button id="witnessParse2RightTreeBackButton" class="ghost-button" type="button" aria-label="Back">&lt;</button>
+                <button id="witnessParse2RightTreeNextButton" class="ghost-button" type="button" aria-label="Next">&gt;</button>
+                <button id="witnessParse2RightTreeFastForwardButton" class="ghost-button" type="button" aria-label="Fast Forward">&gt;&gt;</button>
+              </div>
             </div>
             <div id="witnessParse2RightTreeContainer" class="tree-scroll"></div>
           </article>

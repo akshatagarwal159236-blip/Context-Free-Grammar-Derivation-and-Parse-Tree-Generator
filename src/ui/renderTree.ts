@@ -12,10 +12,17 @@ type RenderTreeOptions = {
   animateGrowth?: boolean;
   stepDelayMs?: number;
   expansionOrder?: number[];
+  onStepChange?: (stepIndex: number, totalSteps: number) => void;
 };
 
 export type TreeRenderHandle = {
   skip: () => void;
+  pause: () => void;
+  resume: () => void;
+  next: () => void;
+  back: () => void;
+  fastForward: () => void;
+  isPaused: () => boolean;
   done: Promise<void>;
 };
 
@@ -192,89 +199,160 @@ export const renderParseTree = (
     ...expandableDefault.filter((entry) => !usedIds.has(entry.node.id)),
   ];
 
-  const timeoutIds = new Set<number>();
+  const totalSteps = expandable.length;
   let doneResolved = false;
-  let skipRequested = false;
   let resolveDone: () => void = () => {};
   const done = new Promise<void>((resolve) => {
     resolveDone = resolve;
   });
+  let index = 0;
+  let paused = false;
+  let stepTimeoutId: number | null = null;
+
+  const emitStepChange = (): void => {
+    options.onStepChange?.(index, totalSteps);
+  };
 
   const finish = (): void => {
     if (doneResolved) {
       return;
     }
     doneResolved = true;
-    timeoutIds.forEach((id) => window.clearTimeout(id));
-    timeoutIds.clear();
+    if (stepTimeoutId !== null) {
+      window.clearTimeout(stepTimeoutId);
+      stepTimeoutId = null;
+    }
     resolveDone();
   };
 
-  const clearRuleTextSoon = (): void => {
-    const timeoutId = window.setTimeout(() => {
-      ruleText.textContent = "";
-      timeoutIds.delete(timeoutId);
-    }, 500);
-    timeoutIds.add(timeoutId);
+  const hideElement = (el: Element): void => {
+    el.classList.remove("is-visible", "is-sprouting");
+    el.classList.add("is-hidden");
   };
 
-  const revealWholeTree = (): void => {
-    linesByChildId.forEach((line) => revealElement(line, false));
-    nodeElsById.forEach((node) => revealElement(node, false));
-  };
-
-  const skip = (): void => {
-    if (doneResolved) {
+  const syncRuleText = (): void => {
+    if (index <= 0) {
+      ruleText.textContent = `Start symbol: ${tree.symbol}`;
       return;
     }
-    skipRequested = true;
-    revealWholeTree();
-    ruleText.textContent = "Animation skipped.";
-    clearRuleTextSoon();
-    finish();
-  };
-
-  revealElement(nodeElsById.get(tree.id), animateGrowth);
-  ruleText.textContent = `Start symbol: ${tree.symbol}`;
-
-  if (!animateGrowth) {
-    revealWholeTree();
-    clearRuleTextSoon();
-    finish();
-    return { skip, done };
-  }
-
-  let index = 0;
-  const step = (): void => {
-    if (skipRequested) {
+    if (index >= totalSteps) {
+      ruleText.textContent = "Tree fully expanded.";
       return;
     }
+    const previous = expandable[index - 1];
+    const rhs = previous.node.children.map((child) => child.symbol).join(" ") || "epsilon";
+    ruleText.textContent = `${previous.node.symbol} -> ${rhs}`;
+  };
+
+  const applyState = (targetIndex: number): void => {
+    const clamped = Math.max(0, Math.min(totalSteps, targetIndex));
+    linesByChildId.forEach((line) => hideElement(line));
+    nodeElsById.forEach((node) => hideElement(node));
+    revealElement(nodeElsById.get(tree.id), false);
+    for (let i = 0; i < clamped; i += 1) {
+      const current = expandable[i];
+      current.node.children.forEach((child) => {
+        revealElement(linesByChildId.get(child.id), false);
+        revealElement(nodeElsById.get(child.id), false);
+      });
+    }
+    index = clamped;
+    syncRuleText();
+    emitStepChange();
+    if (index >= totalSteps) {
+      finish();
+    }
+  };
+
+  const expandOne = (animate: boolean): boolean => {
     const current = expandable[index];
     if (!current) {
       ruleText.textContent = "Tree fully expanded.";
-      clearRuleTextSoon();
       finish();
-      return;
+      return false;
     }
     const rhs = current.node.children.map((child) => child.symbol).join(" ") || "epsilon";
     ruleText.textContent = `${current.node.symbol} -> ${rhs}`;
     current.node.children.forEach((child) => {
-      revealElement(linesByChildId.get(child.id), true);
-      revealElement(nodeElsById.get(child.id), true);
+      revealElement(linesByChildId.get(child.id), animate);
+      revealElement(nodeElsById.get(child.id), animate);
     });
     index += 1;
-    const timeoutId = window.setTimeout(() => {
-      timeoutIds.delete(timeoutId);
-      step();
-    }, stepDelayMs);
-    timeoutIds.add(timeoutId);
+    emitStepChange();
+    if (index >= totalSteps) {
+      finish();
+      return false;
+    }
+    return true;
   };
 
-  const startTimeout = window.setTimeout(() => {
-    timeoutIds.delete(startTimeout);
-    step();
-  }, 280);
-  timeoutIds.add(startTimeout);
+  const scheduleNext = (delay: number): void => {
+    if (paused) {
+      return;
+    }
+    if (stepTimeoutId !== null) {
+      window.clearTimeout(stepTimeoutId);
+      stepTimeoutId = null;
+    }
+    stepTimeoutId = window.setTimeout(() => {
+      stepTimeoutId = null;
+      if (paused) {
+        return;
+      }
+      const hasMore = expandOne(true);
+      if (hasMore) {
+        scheduleNext(stepDelayMs);
+      }
+    }, delay);
+  };
 
-  return { skip, done };
+  const pause = (): void => {
+    paused = true;
+    if (stepTimeoutId !== null) {
+      window.clearTimeout(stepTimeoutId);
+      stepTimeoutId = null;
+    }
+  };
+
+  const resume = (): void => {
+    if (doneResolved || index >= totalSteps) {
+      return;
+    }
+    if (!paused && stepTimeoutId !== null) {
+      return;
+    }
+    paused = false;
+    scheduleNext(40);
+  };
+
+  const next = (): void => {
+    pause();
+    expandOne(false);
+  };
+
+  const back = (): void => {
+    pause();
+    applyState(index - 1);
+  };
+
+  const fastForward = (): void => {
+    pause();
+    applyState(totalSteps);
+  };
+
+  const skip = (): void => {
+    fastForward();
+    ruleText.textContent = "Animation skipped.";
+  };
+
+  applyState(0);
+  if (!animateGrowth) {
+    applyState(totalSteps);
+    return { skip, pause, resume, next, back, fastForward, isPaused: () => paused, done };
+  }
+
+  paused = false;
+  scheduleNext(280);
+
+  return { skip, pause, resume, next, back, fastForward, isPaused: () => paused, done };
 };

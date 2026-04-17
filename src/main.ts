@@ -21,10 +21,38 @@ const copyLeftButton = document.getElementById("copyLeftButton") as HTMLButtonEl
 const copyRightButton = document.getElementById("copyRightButton") as HTMLButtonElement;
 const leftDetailsButton = document.getElementById("leftDetailsButton") as HTMLButtonElement;
 const rightDetailsButton = document.getElementById("rightDetailsButton") as HTMLButtonElement;
-const leftTreeAnimationButton = document.getElementById("leftTreeAnimationButton") as HTMLButtonElement;
-const rightTreeAnimationButton = document.getElementById("rightTreeAnimationButton") as HTMLButtonElement;
-const exportLeftTreeButton = document.getElementById("exportLeftTreeButton") as HTMLButtonElement;
-const exportRightTreeButton = document.getElementById("exportRightTreeButton") as HTMLButtonElement;
+const leftTreePauseButton = document.getElementById("leftTreePauseButton") as HTMLButtonElement;
+const leftTreeBackButton = document.getElementById("leftTreeBackButton") as HTMLButtonElement;
+const leftTreeNextButton = document.getElementById("leftTreeNextButton") as HTMLButtonElement;
+const leftTreeFastForwardButton = document.getElementById("leftTreeFastForwardButton") as HTMLButtonElement;
+const rightTreePauseButton = document.getElementById("rightTreePauseButton") as HTMLButtonElement;
+const rightTreeBackButton = document.getElementById("rightTreeBackButton") as HTMLButtonElement;
+const rightTreeNextButton = document.getElementById("rightTreeNextButton") as HTMLButtonElement;
+const rightTreeFastForwardButton = document.getElementById("rightTreeFastForwardButton") as HTMLButtonElement;
+const extraLeftTreePauseButton = document.getElementById("extraLeftTreePauseButton") as HTMLButtonElement;
+const extraLeftTreeBackButton = document.getElementById("extraLeftTreeBackButton") as HTMLButtonElement;
+const extraLeftTreeNextButton = document.getElementById("extraLeftTreeNextButton") as HTMLButtonElement;
+const extraLeftTreeFastForwardButton = document.getElementById("extraLeftTreeFastForwardButton") as HTMLButtonElement;
+const extraRightTreePauseButton = document.getElementById("extraRightTreePauseButton") as HTMLButtonElement;
+const extraRightTreeBackButton = document.getElementById("extraRightTreeBackButton") as HTMLButtonElement;
+const extraRightTreeNextButton = document.getElementById("extraRightTreeNextButton") as HTMLButtonElement;
+const extraRightTreeFastForwardButton = document.getElementById("extraRightTreeFastForwardButton") as HTMLButtonElement;
+const witnessParse1LeftTreePauseButton = document.getElementById("witnessParse1LeftTreePauseButton") as HTMLButtonElement;
+const witnessParse1LeftTreeBackButton = document.getElementById("witnessParse1LeftTreeBackButton") as HTMLButtonElement;
+const witnessParse1LeftTreeNextButton = document.getElementById("witnessParse1LeftTreeNextButton") as HTMLButtonElement;
+const witnessParse1LeftTreeFastForwardButton = document.getElementById("witnessParse1LeftTreeFastForwardButton") as HTMLButtonElement;
+const witnessParse2LeftTreePauseButton = document.getElementById("witnessParse2LeftTreePauseButton") as HTMLButtonElement;
+const witnessParse2LeftTreeBackButton = document.getElementById("witnessParse2LeftTreeBackButton") as HTMLButtonElement;
+const witnessParse2LeftTreeNextButton = document.getElementById("witnessParse2LeftTreeNextButton") as HTMLButtonElement;
+const witnessParse2LeftTreeFastForwardButton = document.getElementById("witnessParse2LeftTreeFastForwardButton") as HTMLButtonElement;
+const witnessParse1RightTreePauseButton = document.getElementById("witnessParse1RightTreePauseButton") as HTMLButtonElement;
+const witnessParse1RightTreeBackButton = document.getElementById("witnessParse1RightTreeBackButton") as HTMLButtonElement;
+const witnessParse1RightTreeNextButton = document.getElementById("witnessParse1RightTreeNextButton") as HTMLButtonElement;
+const witnessParse1RightTreeFastForwardButton = document.getElementById("witnessParse1RightTreeFastForwardButton") as HTMLButtonElement;
+const witnessParse2RightTreePauseButton = document.getElementById("witnessParse2RightTreePauseButton") as HTMLButtonElement;
+const witnessParse2RightTreeBackButton = document.getElementById("witnessParse2RightTreeBackButton") as HTMLButtonElement;
+const witnessParse2RightTreeNextButton = document.getElementById("witnessParse2RightTreeNextButton") as HTMLButtonElement;
+const witnessParse2RightTreeFastForwardButton = document.getElementById("witnessParse2RightTreeFastForwardButton") as HTMLButtonElement;
 const stringAcceptedCard = document.getElementById("stringAcceptedCard") as HTMLDivElement;
 const stringRejectedCard = document.getElementById("stringRejectedCard") as HTMLDivElement;
 const grammarAmbiguousCard = document.getElementById("grammarAmbiguousCard") as HTMLDivElement;
@@ -112,14 +140,12 @@ let showLeftDetails = true;
 let showRightDetails = true;
 let leftTreeSnapshot: ParseTreeNode | null = null;
 let rightTreeSnapshot: ParseTreeNode | null = null;
-let leftAnimationEnabled = true;
-let rightAnimationEnabled = true;
 let leftTreeHandle: TreeRenderHandle | null = null;
 let rightTreeHandle: TreeRenderHandle | null = null;
 let leftReplayTimeoutId: number | null = null;
 let rightReplayTimeoutId: number | null = null;
-let leftDerivationTimeoutIds = new Set<number>();
-let rightDerivationTimeoutIds = new Set<number>();
+let leftReplayPaused = false;
+let rightReplayPaused = false;
 let leftAnimationToken = 0;
 let rightAnimationToken = 0;
 
@@ -142,6 +168,14 @@ const AMBIGUITY_PLAYBACK_KEYS: AmbiguityPlaybackKey[] = [
 
 let ambiguityTreeHandles: Partial<Record<AmbiguityPlaybackKey, TreeRenderHandle>> = {};
 let ambiguityReplayTimeoutIds: Partial<Record<AmbiguityPlaybackKey, number>> = {};
+const ambiguityReplayPaused: Record<AmbiguityPlaybackKey, boolean> = {
+  extraLeft: false,
+  extraRight: false,
+  witnessParse1Left: false,
+  witnessParse2Left: false,
+  witnessParse1Right: false,
+  witnessParse2Right: false,
+};
 const ambiguityDerivationTimeoutIds: Record<AmbiguityPlaybackKey, Set<number>> = {
   extraLeft: new Set<number>(),
   extraRight: new Set<number>(),
@@ -360,18 +394,10 @@ const setStatusPair = (leftCard: HTMLDivElement, rightCard: HTMLDivElement, stat
   rightCard.classList.toggle("is-idle", state === "idle");
 };
 
-const animationLabel = (enabled: boolean): string => `Animation: ${enabled ? "On" : "Off"}`;
-
-const syncTreeAnimationButtons = (): void => {
-  leftTreeAnimationButton.textContent = animationLabel(leftAnimationEnabled);
-  rightTreeAnimationButton.textContent = animationLabel(rightAnimationEnabled);
-  leftTreeAnimationButton.classList.toggle("is-active", leftAnimationEnabled);
-  rightTreeAnimationButton.classList.toggle("is-active", rightAnimationEnabled);
-};
-
 const clearTreePlayback = (side: "left" | "right"): void => {
   if (side === "left") {
     leftAnimationToken += 1;
+    leftReplayPaused = false;
     if (leftReplayTimeoutId !== null) {
       window.clearTimeout(leftReplayTimeoutId);
       leftReplayTimeoutId = null;
@@ -380,12 +406,11 @@ const clearTreePlayback = (side: "left" | "right"): void => {
       leftTreeHandle.skip();
       leftTreeHandle = null;
     }
-    leftDerivationTimeoutIds.forEach((id) => window.clearTimeout(id));
-    leftDerivationTimeoutIds.clear();
     return;
   }
 
   rightAnimationToken += 1;
+  rightReplayPaused = false;
   if (rightReplayTimeoutId !== null) {
     window.clearTimeout(rightReplayTimeoutId);
     rightReplayTimeoutId = null;
@@ -394,8 +419,6 @@ const clearTreePlayback = (side: "left" | "right"): void => {
     rightTreeHandle.skip();
     rightTreeHandle = null;
   }
-  rightDerivationTimeoutIds.forEach((id) => window.clearTimeout(id));
-  rightDerivationTimeoutIds.clear();
 };
 
 const clearAllTreePlayback = (): void => {
@@ -442,6 +465,7 @@ const ambiguityShowDetailsForKey = (key: AmbiguityPlaybackKey): boolean =>
 
 const clearAmbiguityPlayback = (key: AmbiguityPlaybackKey): void => {
   ambiguityAnimationTokens[key] += 1;
+  ambiguityReplayPaused[key] = false;
   const replayId = ambiguityReplayTimeoutIds[key];
   if (replayId !== undefined) {
     window.clearTimeout(replayId);
@@ -499,22 +523,31 @@ const startAmbiguityPlayback = (key: AmbiguityPlaybackKey): void => {
   }
 
   clearAmbiguityPlayback(key);
+  ambiguityReplayPaused[key] = false;
   const token = ambiguityAnimationTokens[key];
   startAmbiguityDerivationPlayback(key, steps, token);
   const handle = renderParseTree(container, tree, {
     animateGrowth: true,
     expansionOrder: expansionOrderFromDerivation(steps),
+    onStepChange: (stepIndex) => {
+      if (token !== ambiguityAnimationTokens[key]) {
+        return;
+      }
+      const visibleCount = Math.min(steps.length, stepIndex + 1);
+      renderSteps(list, steps.slice(0, visibleCount), ambiguityShowDetailsForKey(key));
+    },
   });
   requestAnimationFrame(() => {
     resetTreeView(container);
   });
   ambiguityTreeHandles[key] = handle;
+  syncAmbiguityPlaybackButtons();
 
   void handle.done.then(() => {
     if (token !== ambiguityAnimationTokens[key]) {
       return;
     }
-    delete ambiguityTreeHandles[key];
+    syncAmbiguityPlaybackButtons();
     renderSteps(list, steps, ambiguityShowDetailsForKey(key));
     resetTreeView(container);
     const timeoutId = window.setTimeout(() => {
@@ -527,48 +560,10 @@ const startAmbiguityPlayback = (key: AmbiguityPlaybackKey): void => {
   });
 };
 
-const startDerivationStepPlayback = (
-  side: "left" | "right",
-  steps: DerivationStep[],
-  animate: boolean,
-  token: number,
-): void => {
-  const isLeft = side === "left";
-  const list = isLeft ? leftmostList : rightmostList;
-  const showDetails = isLeft ? showLeftDetails : showRightDetails;
-  const timeoutIds = isLeft ? leftDerivationTimeoutIds : rightDerivationTimeoutIds;
-
-  timeoutIds.forEach((id) => window.clearTimeout(id));
-  timeoutIds.clear();
-
-  if (!steps.length) {
-    renderSteps(list, [], showDetails);
-    return;
-  }
-  if (!animate) {
-    renderSteps(list, steps, showDetails);
-    return;
-  }
-
-  renderSteps(list, [steps[0]], showDetails);
-  for (let index = 1; index < steps.length; index += 1) {
-    const timeoutId = window.setTimeout(() => {
-      timeoutIds.delete(timeoutId);
-      const activeToken = isLeft ? leftAnimationToken : rightAnimationToken;
-      if (token !== activeToken) {
-        return;
-      }
-      renderSteps(list, steps.slice(0, index + 1), showDetails);
-    }, TREE_START_DELAY_MS + (index - 1) * TREE_STEP_DELAY_MS);
-    timeoutIds.add(timeoutId);
-  }
-};
-
 const startTreePlayback = (side: "left" | "right"): void => {
   const isLeft = side === "left";
   const tree = isLeft ? leftTreeSnapshot : rightTreeSnapshot;
   const container = isLeft ? leftTreeContainer : rightTreeContainer;
-  const enabled = isLeft ? leftAnimationEnabled : rightAnimationEnabled;
   if (!tree) {
     return;
   }
@@ -576,10 +571,23 @@ const startTreePlayback = (side: "left" | "right"): void => {
   clearTreePlayback(side);
   const token = isLeft ? leftAnimationToken : rightAnimationToken;
   const derivationSteps = isLeft ? lastLeftDetailed : lastRightDetailed;
-  startDerivationStepPlayback(side, derivationSteps, enabled, token);
+  const list = isLeft ? leftmostList : rightmostList;
+  renderSteps(list, derivationSteps.length ? [derivationSteps[0]] : [], isLeft ? showLeftDetails : showRightDetails);
   const handle = renderParseTree(container, tree, {
-    animateGrowth: enabled,
+    animateGrowth: true,
     expansionOrder: expansionOrderFromDerivation(derivationSteps),
+    onStepChange: (stepIndex) => {
+      const activeToken = isLeft ? leftAnimationToken : rightAnimationToken;
+      if (token !== activeToken) {
+        return;
+      }
+      const visibleCount = Math.min(derivationSteps.length, stepIndex + 1);
+      renderSteps(
+        list,
+        derivationSteps.slice(0, visibleCount),
+        isLeft ? showLeftDetails : showRightDetails,
+      );
+    },
   });
   // Keep every replay fitted in-view so subsequent cycles do not clip outside the panel.
   requestAnimationFrame(() => {
@@ -590,30 +598,29 @@ const startTreePlayback = (side: "left" | "right"): void => {
   } else {
     rightTreeHandle = handle;
   }
+  syncPlaybackButtons();
 
   void handle.done.then(() => {
     const activeToken = isLeft ? leftAnimationToken : rightAnimationToken;
     if (token !== activeToken) {
       return;
     }
-    if (isLeft) {
-      leftTreeHandle = null;
-    } else {
-      rightTreeHandle = null;
-    }
+    syncPlaybackButtons();
     renderSteps(
-      isLeft ? leftmostList : rightmostList,
+      list,
       derivationSteps,
       isLeft ? showLeftDetails : showRightDetails,
     );
     resetTreeView(container);
-    if (!enabled) {
-      return;
-    }
     const timeoutId = window.setTimeout(() => {
       const currentToken = isLeft ? leftAnimationToken : rightAnimationToken;
       if (token !== currentToken) {
         return;
+      }
+      if (isLeft) {
+        leftReplayTimeoutId = null;
+      } else {
+        rightReplayTimeoutId = null;
       }
       startTreePlayback(side);
     }, TREE_REPLAY_DELAY_MS);
@@ -632,6 +639,108 @@ const syncDetailsButtons = (): void => {
   rightDetailsButton.textContent = detailsLabel(showRightDetails);
   leftDetailsButton.classList.toggle("is-active", showLeftDetails);
   rightDetailsButton.classList.toggle("is-active", showRightDetails);
+};
+
+const syncPlaybackButtons = (): void => {
+  const leftPaused = (!!leftTreeHandle && leftTreeHandle.isPaused()) || leftReplayPaused;
+  const rightPaused = (!!rightTreeHandle && rightTreeHandle.isPaused()) || rightReplayPaused;
+  leftTreePauseButton.textContent = leftPaused ? "|>" : "||";
+  rightTreePauseButton.textContent = rightPaused ? "|>" : "||";
+  leftTreePauseButton.setAttribute("aria-label", leftPaused ? "Resume" : "Pause");
+  rightTreePauseButton.setAttribute("aria-label", rightPaused ? "Resume" : "Pause");
+};
+
+const ambiguityPauseButtonForKey = (key: AmbiguityPlaybackKey): HTMLButtonElement => {
+  switch (key) {
+    case "extraLeft":
+      return extraLeftTreePauseButton;
+    case "extraRight":
+      return extraRightTreePauseButton;
+    case "witnessParse1Left":
+      return witnessParse1LeftTreePauseButton;
+    case "witnessParse2Left":
+      return witnessParse2LeftTreePauseButton;
+    case "witnessParse1Right":
+      return witnessParse1RightTreePauseButton;
+    case "witnessParse2Right":
+      return witnessParse2RightTreePauseButton;
+  }
+};
+
+const syncAmbiguityPlaybackButtons = (): void => {
+  AMBIGUITY_PLAYBACK_KEYS.forEach((key) => {
+    const button = ambiguityPauseButtonForKey(key);
+    const paused = (!!ambiguityTreeHandles[key] && ambiguityTreeHandles[key]!.isPaused()) || ambiguityReplayPaused[key];
+    button.textContent = paused ? "|>" : "||";
+    button.setAttribute("aria-label", paused ? "Resume" : "Pause");
+  });
+};
+
+const controlAmbiguityTree = (
+  key: AmbiguityPlaybackKey,
+  action: "back" | "next" | "fastForward",
+): void => {
+  const replayId = ambiguityReplayTimeoutIds[key];
+  if (replayId !== undefined) {
+    window.clearTimeout(replayId);
+    delete ambiguityReplayTimeoutIds[key];
+  }
+  ambiguityReplayPaused[key] = false;
+
+  const derivationTimeouts = ambiguityDerivationTimeoutIds[key];
+  derivationTimeouts.forEach((id) => window.clearTimeout(id));
+  derivationTimeouts.clear();
+
+  const handle = ambiguityTreeHandles[key];
+  if (!handle) {
+    return;
+  }
+
+  if (action === "back") {
+    handle.back();
+    syncAmbiguityPlaybackButtons();
+    return;
+  }
+
+  if (action === "next") {
+    handle.next();
+    syncAmbiguityPlaybackButtons();
+    return;
+  }
+
+  handle.fastForward();
+  syncAmbiguityPlaybackButtons();
+};
+
+const toggleAmbiguityTreePause = (key: AmbiguityPlaybackKey): void => {
+  if (ambiguityReplayPaused[key]) {
+    ambiguityReplayPaused[key] = false;
+    startAmbiguityPlayback(key);
+    syncAmbiguityPlaybackButtons();
+    return;
+  }
+
+  const replayId = ambiguityReplayTimeoutIds[key];
+  if (replayId !== undefined) {
+    window.clearTimeout(replayId);
+    delete ambiguityReplayTimeoutIds[key];
+    ambiguityReplayPaused[key] = true;
+    syncAmbiguityPlaybackButtons();
+    return;
+  }
+
+  const handle = ambiguityTreeHandles[key];
+  if (!handle) {
+    syncAmbiguityPlaybackButtons();
+    return;
+  }
+
+  if (handle.isPaused()) {
+    handle.resume();
+  } else {
+    handle.pause();
+  }
+  syncAmbiguityPlaybackButtons();
 };
 
 const setAmbiguousExtraVisible = (visible: boolean): void => {
@@ -1113,15 +1222,135 @@ exampleLoadCards.forEach((card) => {
     }
   });
 });
-leftTreeAnimationButton.addEventListener("click", () => {
-  leftAnimationEnabled = !leftAnimationEnabled;
-  syncTreeAnimationButtons();
-  startTreePlayback("left");
+leftTreePauseButton.addEventListener("click", () => {
+  if (leftReplayPaused) {
+    leftReplayPaused = false;
+    startTreePlayback("left");
+  } else if (leftReplayTimeoutId !== null) {
+    window.clearTimeout(leftReplayTimeoutId);
+    leftReplayTimeoutId = null;
+    leftReplayPaused = true;
+  } else if (!leftTreeHandle) {
+    return;
+  } else if (leftTreeHandle.isPaused()) {
+    leftTreeHandle.resume();
+  } else {
+    leftTreeHandle.pause();
+  }
+  syncPlaybackButtons();
 });
-rightTreeAnimationButton.addEventListener("click", () => {
-  rightAnimationEnabled = !rightAnimationEnabled;
-  syncTreeAnimationButtons();
-  startTreePlayback("right");
+leftTreeBackButton.addEventListener("click", () => {
+  leftTreeHandle?.back();
+  syncPlaybackButtons();
+});
+leftTreeNextButton.addEventListener("click", () => {
+  leftTreeHandle?.next();
+  syncPlaybackButtons();
+});
+leftTreeFastForwardButton.addEventListener("click", () => {
+  leftTreeHandle?.fastForward();
+  syncPlaybackButtons();
+});
+rightTreePauseButton.addEventListener("click", () => {
+  if (rightReplayPaused) {
+    rightReplayPaused = false;
+    startTreePlayback("right");
+  } else if (rightReplayTimeoutId !== null) {
+    window.clearTimeout(rightReplayTimeoutId);
+    rightReplayTimeoutId = null;
+    rightReplayPaused = true;
+  } else if (!rightTreeHandle) {
+    return;
+  } else if (rightTreeHandle.isPaused()) {
+    rightTreeHandle.resume();
+  } else {
+    rightTreeHandle.pause();
+  }
+  syncPlaybackButtons();
+});
+rightTreeBackButton.addEventListener("click", () => {
+  rightTreeHandle?.back();
+  syncPlaybackButtons();
+});
+rightTreeNextButton.addEventListener("click", () => {
+  rightTreeHandle?.next();
+  syncPlaybackButtons();
+});
+rightTreeFastForwardButton.addEventListener("click", () => {
+  rightTreeHandle?.fastForward();
+  syncPlaybackButtons();
+});
+extraLeftTreePauseButton.addEventListener("click", () => {
+  toggleAmbiguityTreePause("extraLeft");
+});
+extraLeftTreeBackButton.addEventListener("click", () => {
+  controlAmbiguityTree("extraLeft", "back");
+});
+extraLeftTreeNextButton.addEventListener("click", () => {
+  controlAmbiguityTree("extraLeft", "next");
+});
+extraLeftTreeFastForwardButton.addEventListener("click", () => {
+  controlAmbiguityTree("extraLeft", "fastForward");
+});
+extraRightTreePauseButton.addEventListener("click", () => {
+  toggleAmbiguityTreePause("extraRight");
+});
+extraRightTreeBackButton.addEventListener("click", () => {
+  controlAmbiguityTree("extraRight", "back");
+});
+extraRightTreeNextButton.addEventListener("click", () => {
+  controlAmbiguityTree("extraRight", "next");
+});
+extraRightTreeFastForwardButton.addEventListener("click", () => {
+  controlAmbiguityTree("extraRight", "fastForward");
+});
+witnessParse1LeftTreePauseButton.addEventListener("click", () => {
+  toggleAmbiguityTreePause("witnessParse1Left");
+});
+witnessParse1LeftTreeBackButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse1Left", "back");
+});
+witnessParse1LeftTreeNextButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse1Left", "next");
+});
+witnessParse1LeftTreeFastForwardButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse1Left", "fastForward");
+});
+witnessParse2LeftTreePauseButton.addEventListener("click", () => {
+  toggleAmbiguityTreePause("witnessParse2Left");
+});
+witnessParse2LeftTreeBackButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse2Left", "back");
+});
+witnessParse2LeftTreeNextButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse2Left", "next");
+});
+witnessParse2LeftTreeFastForwardButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse2Left", "fastForward");
+});
+witnessParse1RightTreePauseButton.addEventListener("click", () => {
+  toggleAmbiguityTreePause("witnessParse1Right");
+});
+witnessParse1RightTreeBackButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse1Right", "back");
+});
+witnessParse1RightTreeNextButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse1Right", "next");
+});
+witnessParse1RightTreeFastForwardButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse1Right", "fastForward");
+});
+witnessParse2RightTreePauseButton.addEventListener("click", () => {
+  toggleAmbiguityTreePause("witnessParse2Right");
+});
+witnessParse2RightTreeBackButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse2Right", "back");
+});
+witnessParse2RightTreeNextButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse2Right", "next");
+});
+witnessParse2RightTreeFastForwardButton.addEventListener("click", () => {
+  controlAmbiguityTree("witnessParse2Right", "fastForward");
 });
 leftDetailsButton.addEventListener("click", () => {
   showLeftDetails = !showLeftDetails;
@@ -1139,12 +1368,6 @@ copyLeftButton.addEventListener("click", () => {
 copyRightButton.addEventListener("click", () => {
   void copySteps(lastRight);
 });
-exportLeftTreeButton.addEventListener("click", () => {
-  exportTreeFrom(leftTreeContainer, "parse-tree-leftmost.txt", "leftmost");
-});
-exportRightTreeButton.addEventListener("click", () => {
-  exportTreeFrom(rightTreeContainer, "parse-tree-rightmost.txt", "rightmost");
-});
 inputString.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     void run();
@@ -1152,7 +1375,8 @@ inputString.addEventListener("keydown", (event) => {
 });
 
 syncDetailsButtons();
-syncTreeAnimationButtons();
+syncPlaybackButtons();
+syncAmbiguityPlaybackButtons();
 attachGlobalPanHandlersOnce();
 initTreeViewport(leftTreeContainer);
 initTreeViewport(rightTreeContainer);
