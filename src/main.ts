@@ -50,6 +50,7 @@ const leftTreeContainer = document.getElementById("leftTreeContainer") as HTMLDi
 const rightTreeContainer = document.getElementById("rightTreeContainer") as HTMLDivElement;
 const heroTreeGraphic = document.querySelector(".hero-tree-graphic") as HTMLElement | null;
 const toolSection = document.getElementById("tool-section") as HTMLElement | null;
+const stringResultSection = document.getElementById("string-result-section") as HTMLElement | null;
 const ambiguousExtraLeftRow = document.getElementById("ambiguousExtraLeftRow") as HTMLDivElement;
 const ambiguousExtraRightRow = document.getElementById("ambiguousExtraRightRow") as HTMLDivElement;
 const extraLeftDerivationTitle = document.getElementById("extraLeftDerivationTitle") as HTMLHeadingElement;
@@ -119,9 +120,13 @@ let rightAnimationToken = 0;
 
 type ExampleKey =
   | "ambiguous-expression"
-  | "rejected-string"
+  | "four-nonterminal-input"
   | "ambiguous-single-input"
-  | "a-star-b-star";
+  | "a-star-b-star"
+  | "triple-blocks"
+  | "palindrome-even"
+  | "balanced-zero-one"
+  | "sum-chain";
 
 type ExampleCase = {
   grammar: string;
@@ -144,12 +149,12 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
     startSymbol: "E",
     input: "e + e * e",
   },
-  "rejected-string": {
-    grammar: "S -> a S b | epsilon",
-    nonTerminals: "S",
-    terminals: "a, b",
+  "four-nonterminal-input": {
+    grammar: "S -> A B C D\nA -> a A | a\nB -> b B | b\nC -> c C | c\nD -> d D | d",
+    nonTerminals: "S, A, B, C, D",
+    terminals: "a, b, c, d",
     startSymbol: "S",
-    input: "aaabb",
+    input: "aaaabbbccdd",
   },
   "ambiguous-single-input": {
     grammar: "S -> A | B\nA -> a A a | a\nB -> B B | b",
@@ -164,6 +169,34 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
     terminals: "a, b",
     startSymbol: "S",
     input: "aaabbb",
+  },
+  "triple-blocks": {
+    grammar: "S -> A B C\nA -> a A | a\nB -> b B | b\nC -> c C | c",
+    nonTerminals: "S, A, B, C",
+    terminals: "a, b, c",
+    startSymbol: "S",
+    input: "aaabbbccc",
+  },
+  "palindrome-even": {
+    grammar: "S -> a S a | b S b | a | b | epsilon",
+    nonTerminals: "S",
+    terminals: "a, b",
+    startSymbol: "S",
+    input: "abba",
+  },
+  "balanced-zero-one": {
+    grammar: "S -> 0 S 1 | 0 1",
+    nonTerminals: "S",
+    terminals: "0, 1",
+    startSymbol: "S",
+    input: "000111",
+  },
+  "sum-chain": {
+    grammar: "E -> E + T | T\nT -> i",
+    nonTerminals: "E, T",
+    terminals: "i, +",
+    startSymbol: "E",
+    input: "i + i + i",
   },
 };
 
@@ -810,10 +843,17 @@ const run = async (): Promise<void> => {
 };
 
 generateButton.addEventListener("click", () => {
-  void run();
+  void run().then(() => {
+    if (!stringResultSection) {
+      return;
+    }
+    const navClearance = 104;
+    const top = Math.max(0, stringResultSection.offsetTop - navClearance);
+    window.scrollTo({ top, behavior: "smooth" });
+  });
 });
 exampleLoadCards.forEach((card) => {
-  const loadAndRunExample = async (): Promise<void> => {
+  const loadExample = (): void => {
     const key = card.dataset.exampleKey as ExampleKey | undefined;
     if (!key) {
       return;
@@ -823,17 +863,16 @@ exampleLoadCards.forEach((card) => {
       return;
     }
     applyExample(example);
-    await run();
     toolSection?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   card.addEventListener("click", () => {
-    void loadAndRunExample();
+    loadExample();
   });
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      void loadAndRunExample();
+      loadExample();
     }
   });
 });
@@ -888,4 +927,3 @@ initTreeViewport(witnessParse1RightTreeContainer);
 initTreeViewport(witnessParse2RightTreeContainer);
 setupHeroTreeDemo();
 initNavHighlight();
-void run();

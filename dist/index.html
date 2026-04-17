@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CFG Derivation Explorer</title>
-    <script type="module" crossorigin src="/assets/index-ukSfm3xh.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DihehMC7.css">
+    <script type="module" crossorigin src="/assets/index-Duh2rgfk.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cfc0n9q7.css">
   </head>
   <body class="theme-dark">
     <div class="hero-topbar">
@@ -104,12 +104,12 @@
       <section id="examples-section" class="panel examples-panel">
         <div class="theory-head">
           <h2>Example Problems</h2>
-          <p>Click any example below to auto-fill the form and run instantly.</p>
+          <p>Click any example below to auto-fill the form, then click Generate Analysis.</p>
         </div>
         <div class="examples-grid">
           <article class="example-card example-load-card" data-example-key="a-star-b-star" role="button" tabindex="0">
-            <h3>Ordered Blocks</h3>
-            <p>Derive a block of <code>a</code>s followed by a block of <code>b</code>s.</p>
+            <h3>aaabbb</h3>
+            <p>Grammar rules: <code>S -&gt; A B</code>, <code>A -&gt; a A | a</code>, <code>B -&gt; b B | b</code></p>
           </article>
           <article
             class="example-card example-load-card"
@@ -117,12 +117,15 @@
             role="button"
             tabindex="0"
           >
-            <h3>Ambiguous Grammar, Unique Input</h3>
-            <p>Grammar is ambiguous overall, but input <code>aaaaa</code> has one parse and a bigger tree.</p>
+            <h3>aaaaa</h3>
+            <p>Grammar rules: <code>S -&gt; A | B</code>, <code>A -&gt; a A a | a</code>, <code>B -&gt; B B | b</code></p>
           </article>
-          <article class="example-card example-load-card" data-example-key="rejected-string" role="button" tabindex="0">
-            <h3>String Rejection Case</h3>
-            <p>Input cannot be derived from the provided grammar.</p>
+          <article class="example-card example-load-card" data-example-key="four-nonterminal-input" role="button" tabindex="0">
+            <h3>aaaabbbccdd</h3>
+            <p>
+              Grammar rules: <code>S -&gt; A B C D</code>, <code>A -&gt; a A | a</code>, <code>B -&gt; b B | b</code>,
+              <code>C -&gt; c C | c</code>, <code>D -&gt; d D | d</code>
+            </p>
           </article>
           <article
             class="example-card example-load-card"
@@ -130,8 +133,32 @@
             role="button"
             tabindex="0"
           >
-            <h3>Expression Ambiguity</h3>
-            <p>Shows multiple parse trees for <code>e + e * e</code>.</p>
+            <h3>e + e * e</h3>
+            <p>Grammar rules: <code>E -&gt; E + E | E * E | e</code></p>
+          </article>
+          <article class="example-card example-load-card" data-example-key="triple-blocks" role="button" tabindex="0">
+            <h3>aaabbbccc</h3>
+            <p>
+              Grammar rules: <code>S -&gt; A B C</code>, <code>A -&gt; a A | a</code>, <code>B -&gt; b B | b</code>,
+              <code>C -&gt; c C | c</code>
+            </p>
+          </article>
+          <article class="example-card example-load-card" data-example-key="palindrome-even" role="button" tabindex="0">
+            <h3>abba</h3>
+            <p>Grammar rules: <code>S -&gt; a S a | b S b | a | b | epsilon</code></p>
+          </article>
+          <article
+            class="example-card example-load-card"
+            data-example-key="balanced-zero-one"
+            role="button"
+            tabindex="0"
+          >
+            <h3>000111</h3>
+            <p>Grammar rules: <code>S -&gt; 0 S 1 | 0 1</code></p>
+          </article>
+          <article class="example-card example-load-card" data-example-key="sum-chain" role="button" tabindex="0">
+            <h3>i + i + i</h3>
+            <p>Grammar rules: <code>E -&gt; E + T | T</code>, <code>T -&gt; i</code></p>
           </article>
         </div>
       </section>
@@ -166,7 +193,7 @@
         </div>
       </section>
 
-      <section class="results-grid string-only-status">
+      <section id="string-result-section" class="results-grid string-only-status">
         <article class="panel status-window" aria-live="polite">
           <h2>String Result</h2>
           <div class="status-choice-grid">
