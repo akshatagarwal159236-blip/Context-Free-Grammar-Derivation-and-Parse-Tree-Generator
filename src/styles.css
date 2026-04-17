@@ -21,7 +21,7 @@ body.theme-dark {
   --bg-0: #06030f;
   --bg-1: #0c0a1b;
   --ink: #00f7ff;
-  --ink-soft: #a8adcb;
+  --ink-soft: #ffffff;
   --panel: rgba(16, 12, 30, 0.84);
   --panel-border: rgba(0, 247, 255, 0.28);
   --line: rgba(255, 0, 170, 0.3);
@@ -96,7 +96,53 @@ body::after {
   filter: blur(10px);
 }
 
+.floating-trees-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floating-tree {
+  position: absolute;
+  width: clamp(180px, 17vw, 280px);
+  opacity: 0.2;
+  filter: drop-shadow(0 0 12px rgba(0, 247, 255, 0.22));
+}
+
+.floating-tree line {
+  stroke: rgba(0, 247, 255, 0.72);
+  stroke-width: 1.8;
+}
+
+.floating-tree circle {
+  fill: rgba(255, 47, 207, 0.42);
+  stroke: rgba(0, 247, 255, 0.78);
+  stroke-width: 1.2;
+}
+
+.tree-a {
+  left: 4%;
+  top: 12%;
+  animation: floatTreeA 42s linear infinite;
+}
+
+.tree-b {
+  left: 76%;
+  top: 22%;
+  animation: floatTreeB 48s linear infinite;
+}
+
+.tree-c {
+  left: 34%;
+  top: 66%;
+  animation: floatTreeC 44s linear infinite;
+}
+
 .app {
+  position: relative;
+  z-index: 1;
   width: min(1200px, 100% - 2rem);
   margin: 0 auto;
   padding: 0 0 2.5rem;
@@ -149,9 +195,9 @@ body::after {
   align-items: flex-start;
   gap: 1rem;
   background:
-    linear-gradient(155deg, rgba(92, 134, 236, 0.15), transparent 58%),
-    linear-gradient(320deg, rgba(156, 72, 100, 0.12), transparent 62%),
-    color-mix(in oklab, var(--bg-0) 78%, var(--bg-1));
+    linear-gradient(155deg, rgba(0, 229, 255, 0.08), transparent 58%),
+    linear-gradient(320deg, rgba(255, 47, 207, 0.08), transparent 62%),
+    rgba(9, 8, 20, 0.44);
 }
 
 .hero-topbar {
@@ -171,7 +217,7 @@ body::after {
   border-bottom: 1px solid rgba(0, 247, 255, 0.24);
   background: rgba(8, 8, 20, 0.82);
   backdrop-filter: blur(10px);
-  z-index: 60;
+  z-index: 80;
   box-shadow: 0 10px 26px -22px rgba(0, 0, 0, 0.95);
 }
 
@@ -1154,7 +1200,65 @@ body.theme-dark .tree-node {
   }
 }
 
+@keyframes floatTreeA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.98) rotate(-3deg);
+  }
+  25% {
+    transform: translate3d(120px, -40px, 0) scale(1.05) rotate(2deg);
+  }
+  50% {
+    transform: translate3d(210px, 44px, 0) scale(1.08) rotate(6deg);
+  }
+  75% {
+    transform: translate3d(74px, 122px, 0) scale(1) rotate(1deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.98) rotate(-3deg);
+  }
+}
+
+@keyframes floatTreeB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.02) rotate(2deg);
+  }
+  20% {
+    transform: translate3d(-140px, 24px, 0) scale(0.96) rotate(-5deg);
+  }
+  45% {
+    transform: translate3d(-260px, 92px, 0) scale(1.05) rotate(-1deg);
+  }
+  70% {
+    transform: translate3d(-118px, 164px, 0) scale(1.1) rotate(5deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.02) rotate(2deg);
+  }
+}
+
+@keyframes floatTreeC {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.02) rotate(-2deg);
+  }
+  22% {
+    transform: translate3d(134px, -78px, 0) scale(0.98) rotate(3deg);
+  }
+  50% {
+    transform: translate3d(268px, -18px, 0) scale(1.06) rotate(7deg);
+  }
+  78% {
+    transform: translate3d(94px, 66px, 0) scale(0.96) rotate(1deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.02) rotate(-2deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .floating-tree {
+    animation: none !important;
+  }
+
   .hero-tree-lines line,
   .hero-tree-nodes circle,
   .hero-tree-labels text {
@@ -1257,6 +1361,10 @@ body.theme-dark .tree-node {
 
   .hero-tree-graphic {
     display: none;
+  }
+
+  .floating-tree {
+    opacity: 0.1;
   }
 
 }

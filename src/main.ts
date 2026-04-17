@@ -48,6 +48,7 @@ const leftmostList = document.getElementById("leftmostList") as HTMLOListElement
 const rightmostList = document.getElementById("rightmostList") as HTMLOListElement;
 const leftTreeContainer = document.getElementById("leftTreeContainer") as HTMLDivElement;
 const rightTreeContainer = document.getElementById("rightTreeContainer") as HTMLDivElement;
+const homeSection = document.getElementById("home-section") as HTMLElement | null;
 const heroTreeGraphic = document.querySelector(".hero-tree-graphic") as HTMLElement | null;
 const toolSection = document.getElementById("tool-section") as HTMLElement | null;
 const stringResultSection = document.getElementById("string-result-section") as HTMLElement | null;
@@ -925,5 +926,23 @@ initTreeViewport(witnessParse1LeftTreeContainer);
 initTreeViewport(witnessParse2LeftTreeContainer);
 initTreeViewport(witnessParse1RightTreeContainer);
 initTreeViewport(witnessParse2RightTreeContainer);
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual";
+}
+const forceHomeOnLoad = (): void => {
+  const homeHash = "#home-section";
+  const cleanUrl = `${window.location.pathname}${window.location.search}${homeHash}`;
+  if (window.location.hash !== homeHash) {
+    history.replaceState(null, "", cleanUrl);
+  }
+  const jumpHome = (): void => {
+    homeSection?.scrollIntoView({ block: "start", behavior: "auto" });
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
+  jumpHome();
+  requestAnimationFrame(jumpHome);
+};
+forceHomeOnLoad();
+window.addEventListener("load", forceHomeOnLoad);
 setupHeroTreeDemo();
 initNavHighlight();
