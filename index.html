@@ -210,7 +210,7 @@
             tabindex="0"
           >
             <h3>aaaaa</h3>
-            <p>Grammar rules: <code>S -&gt; A | B</code>, <code>A -&gt; a A a | a</code>, <code>B -&gt; B B | b</code></p>
+            <p>Grammar rules: <code>S -&gt; a S | a</code></p>
           </article>
           <article class="example-card example-load-card" data-example-key="four-nonterminal-input" role="button" tabindex="0">
             <h3>aaaabbbccdd</h3>
@@ -226,18 +226,17 @@
             tabindex="0"
           >
             <h3>e + e * e</h3>
-            <p>Grammar rules: <code>E -&gt; E + E | E * E | e</code></p>
-          </article>
-          <article class="example-card example-load-card" data-example-key="triple-blocks" role="button" tabindex="0">
-            <h3>aaabbbccc</h3>
             <p>
-              Grammar rules: <code>S -&gt; A B C</code>, <code>A -&gt; a A | a</code>, <code>B -&gt; b B | b</code>,
-              <code>C -&gt; c C | c</code>
+              Grammar rules: <code>E -&gt; E + T | T</code>, <code>T -&gt; T * F | F</code>, <code>F -&gt; e</code>
             </p>
           </article>
+          <article class="example-card example-load-card" data-example-key="triple-blocks" role="button" tabindex="0">
+            <h3>e + e</h3>
+            <p>Grammar rules: <code>E -&gt; E + E | e</code></p>
+          </article>
           <article class="example-card example-load-card" data-example-key="palindrome-even" role="button" tabindex="0">
-            <h3>abba</h3>
-            <p>Grammar rules: <code>S -&gt; a S a | b S b | a | b | epsilon</code></p>
+            <h3>aa</h3>
+            <p>Grammar rules: <code>S -&gt; S S | a</code></p>
           </article>
           <article
             class="example-card example-load-card"
@@ -249,8 +248,8 @@
             <p>Grammar rules: <code>S -&gt; 0 S 1 | 0 1</code></p>
           </article>
           <article class="example-card example-load-card" data-example-key="sum-chain" role="button" tabindex="0">
-            <h3>i + i + i</h3>
-            <p>Grammar rules: <code>E -&gt; E + T | T</code>, <code>T -&gt; i</code></p>
+            <h3>aaabb</h3>
+            <p>Grammar rules: <code>S -&gt; a S b | epsilon</code></p>
           </article>
         </div>
       </section>

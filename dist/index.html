@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CFG Derivation Explorer</title>
-    <script type="module" crossorigin src="/assets/index-Bmum75LC.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-Ce_EiubM.css">
+    <script type="module" crossorigin src="/assets/index-KrzhTS7b.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-C3sb5Blk.css">
   </head>
   <body class="theme-dark">
     <div class="floating-trees-bg" aria-hidden="true">
@@ -120,62 +120,6 @@
     </div>
     <main class="app">
       <header id="home-section" class="app-header panel">
-        <div class="home-floating-trees" aria-hidden="true">
-          <svg class="home-tree home-tree-a" viewBox="0 0 150 190" role="presentation">
-            <g>
-              <line x1="75" y1="24" x2="50" y2="58" />
-              <line x1="75" y1="24" x2="100" y2="58" />
-              <line x1="50" y1="58" x2="35" y2="92" />
-              <line x1="50" y1="58" x2="65" y2="92" />
-              <line x1="100" y1="58" x2="85" y2="92" />
-              <line x1="100" y1="58" x2="115" y2="92" />
-              <line x1="35" y1="92" x2="24" y2="128" />
-              <line x1="65" y1="92" x2="72" y2="128" />
-              <line x1="85" y1="92" x2="92" y2="128" />
-              <line x1="115" y1="92" x2="126" y2="128" />
-            </g>
-            <g>
-              <circle cx="75" cy="24" r="8" />
-              <circle cx="50" cy="58" r="7" />
-              <circle cx="100" cy="58" r="7" />
-              <circle cx="35" cy="92" r="6.4" />
-              <circle cx="65" cy="92" r="6.4" />
-              <circle cx="85" cy="92" r="6.4" />
-              <circle cx="115" cy="92" r="6.4" />
-              <circle cx="24" cy="128" r="5.5" />
-              <circle cx="72" cy="128" r="5.5" />
-              <circle cx="92" cy="128" r="5.5" />
-              <circle cx="126" cy="128" r="5.5" />
-            </g>
-          </svg>
-          <svg class="home-tree home-tree-b" viewBox="0 0 150 190" role="presentation">
-            <g>
-              <line x1="75" y1="20" x2="75" y2="54" />
-              <line x1="75" y1="54" x2="52" y2="86" />
-              <line x1="75" y1="54" x2="98" y2="86" />
-              <line x1="52" y1="86" x2="36" y2="118" />
-              <line x1="52" y1="86" x2="66" y2="118" />
-              <line x1="98" y1="86" x2="84" y2="118" />
-              <line x1="98" y1="86" x2="114" y2="118" />
-              <line x1="36" y1="118" x2="26" y2="148" />
-              <line x1="84" y1="118" x2="76" y2="148" />
-              <line x1="114" y1="118" x2="124" y2="148" />
-            </g>
-            <g>
-              <circle cx="75" cy="20" r="8" />
-              <circle cx="75" cy="54" r="7" />
-              <circle cx="52" cy="86" r="6.4" />
-              <circle cx="98" cy="86" r="6.4" />
-              <circle cx="36" cy="118" r="5.8" />
-              <circle cx="66" cy="118" r="5.8" />
-              <circle cx="84" cy="118" r="5.8" />
-              <circle cx="114" cy="118" r="5.8" />
-              <circle cx="26" cy="148" r="5.2" />
-              <circle cx="76" cy="148" r="5.2" />
-              <circle cx="124" cy="148" r="5.2" />
-            </g>
-          </svg>
-        </div>
         <h1>CFG Derivation and Parse Tree Generator</h1>
         <p>Enter grammar rules and a target string to generate derivations and parse tree.</p>
         <a class="hero-start-button" href="#tool-section">Launch Tool</a>
@@ -267,7 +211,7 @@
             tabindex="0"
           >
             <h3>aaaaa</h3>
-            <p>Grammar rules: <code>S -&gt; A | B</code>, <code>A -&gt; a A a | a</code>, <code>B -&gt; B B | b</code></p>
+            <p>Grammar rules: <code>S -&gt; a S | a</code></p>
           </article>
           <article class="example-card example-load-card" data-example-key="four-nonterminal-input" role="button" tabindex="0">
             <h3>aaaabbbccdd</h3>
@@ -283,18 +227,17 @@
             tabindex="0"
           >
             <h3>e + e * e</h3>
-            <p>Grammar rules: <code>E -&gt; E + E | E * E | e</code></p>
-          </article>
-          <article class="example-card example-load-card" data-example-key="triple-blocks" role="button" tabindex="0">
-            <h3>aaabbbccc</h3>
             <p>
-              Grammar rules: <code>S -&gt; A B C</code>, <code>A -&gt; a A | a</code>, <code>B -&gt; b B | b</code>,
-              <code>C -&gt; c C | c</code>
+              Grammar rules: <code>E -&gt; E + T | T</code>, <code>T -&gt; T * F | F</code>, <code>F -&gt; e</code>
             </p>
           </article>
+          <article class="example-card example-load-card" data-example-key="triple-blocks" role="button" tabindex="0">
+            <h3>e + e</h3>
+            <p>Grammar rules: <code>E -&gt; E + E | e</code></p>
+          </article>
           <article class="example-card example-load-card" data-example-key="palindrome-even" role="button" tabindex="0">
-            <h3>abba</h3>
-            <p>Grammar rules: <code>S -&gt; a S a | b S b | a | b | epsilon</code></p>
+            <h3>aa</h3>
+            <p>Grammar rules: <code>S -&gt; S S | a</code></p>
           </article>
           <article
             class="example-card example-load-card"
@@ -306,8 +249,8 @@
             <p>Grammar rules: <code>S -&gt; 0 S 1 | 0 1</code></p>
           </article>
           <article class="example-card example-load-card" data-example-key="sum-chain" role="button" tabindex="0">
-            <h3>i + i + i</h3>
-            <p>Grammar rules: <code>E -&gt; E + T | T</code>, <code>T -&gt; i</code></p>
+            <h3>aaabb</h3>
+            <p>Grammar rules: <code>S -&gt; a S b | epsilon</code></p>
           </article>
         </div>
       </section>

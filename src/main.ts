@@ -144,8 +144,8 @@ const expansionOrderFromDerivation = (steps: DerivationStep[]): number[] =>
 
 const EXAMPLES: Record<ExampleKey, ExampleCase> = {
   "ambiguous-expression": {
-    grammar: "E -> E + E | E * E | e",
-    nonTerminals: "E",
+    grammar: "E -> E + T | T\nT -> T * F | F\nF -> e",
+    nonTerminals: "E, T, F",
     terminals: "e, +, *",
     startSymbol: "E",
     input: "e + e * e",
@@ -158,9 +158,9 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
     input: "aaaabbbccdd",
   },
   "ambiguous-single-input": {
-    grammar: "S -> A | B\nA -> a A a | a\nB -> B B | b",
-    nonTerminals: "S, A, B",
-    terminals: "a, b",
+    grammar: "S -> a S | a",
+    nonTerminals: "S",
+    terminals: "a",
     startSymbol: "S",
     input: "aaaaa",
   },
@@ -172,18 +172,18 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
     input: "aaabbb",
   },
   "triple-blocks": {
-    grammar: "S -> A B C\nA -> a A | a\nB -> b B | b\nC -> c C | c",
-    nonTerminals: "S, A, B, C",
-    terminals: "a, b, c",
-    startSymbol: "S",
-    input: "aaabbbccc",
+    grammar: "E -> E + E | e",
+    nonTerminals: "E",
+    terminals: "e, +",
+    startSymbol: "E",
+    input: "e + e",
   },
   "palindrome-even": {
-    grammar: "S -> a S a | b S b | a | b | epsilon",
+    grammar: "S -> S S | a",
     nonTerminals: "S",
-    terminals: "a, b",
+    terminals: "a",
     startSymbol: "S",
-    input: "abba",
+    input: "aa",
   },
   "balanced-zero-one": {
     grammar: "S -> 0 S 1 | 0 1",
@@ -193,11 +193,11 @@ const EXAMPLES: Record<ExampleKey, ExampleCase> = {
     input: "000111",
   },
   "sum-chain": {
-    grammar: "E -> E + T | T\nT -> i",
-    nonTerminals: "E, T",
-    terminals: "i, +",
-    startSymbol: "E",
-    input: "i + i + i",
+    grammar: "S -> a S b | epsilon",
+    nonTerminals: "S",
+    terminals: "a, b",
+    startSymbol: "S",
+    input: "aaabb",
   },
 };
 
@@ -373,6 +373,10 @@ const startTreePlayback = (side: "left" | "right"): void => {
     animateGrowth: enabled,
     expansionOrder: expansionOrderFromDerivation(derivationSteps),
   });
+  // Keep every replay fitted in-view so subsequent cycles do not clip outside the panel.
+  requestAnimationFrame(() => {
+    resetTreeView(container);
+  });
   if (isLeft) {
     leftTreeHandle = handle;
   } else {
@@ -389,6 +393,7 @@ const startTreePlayback = (side: "left" | "right"): void => {
     } else {
       rightTreeHandle = null;
     }
+    resetTreeView(container);
     if (!enabled) {
       return;
     }
